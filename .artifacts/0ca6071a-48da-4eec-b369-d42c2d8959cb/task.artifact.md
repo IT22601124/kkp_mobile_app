@@ -1,0 +1,4 @@
+- [x] Add `deleteShopUrl` to `ApiRoutes`
+- [x] Implement `deleteShop` in `ShopProvider`
+- [x] Add delete button and confirmation dialog to `AllShopsScreen`
+- [x] Verify deletion functionality
