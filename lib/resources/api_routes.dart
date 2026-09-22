@@ -9,4 +9,5 @@ class ApiRoutes {
   static const String getMyShopsUrl = 'mobile/my-shops';
   static const String shopsCreatedByUrl = 'shops/created-by';
   static const String deleteShopUrl = 'mobile/shops'; // Usage: deleteShopUrl/$id
+  static const String getItemsUrl = 'mobile/items';
 }

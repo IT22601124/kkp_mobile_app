@@ -109,9 +109,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           },
         );
         break;
-      case 6:
-        currentBody = InvoiceCreationScreen(initialOutlet: _selectedInvoiceOutlet);
-        break;
       default:
         currentBody = const SizedBox.shrink();
     }
@@ -170,7 +167,12 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          setState(() => _currentIndex = 6); // Go to Invoice / POS
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => InvoiceCreationScreen(initialOutlet: _selectedInvoiceOutlet),
+              ),
+            );
         },
         backgroundColor: AppColors.primaryOrange,
         child: const Icon(Icons.shopping_cart, color: Colors.white),

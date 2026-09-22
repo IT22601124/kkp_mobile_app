@@ -1,4 +1,6 @@
-- [x] Add `deleteShopUrl` to `ApiRoutes`
-- [x] Implement `deleteShop` in `ShopProvider`
-- [x] Add delete button and confirmation dialog to `AllShopsScreen`
-- [x] Verify deletion functionality
+- [x] Create `ItemModel` class in `lib/models/item_model.dart`
+- [x] Add `getItemsUrl` to `lib/resources/api_routes.dart`
+- [x] Implement `ItemProvider` class in `lib/provider/item_provider.dart`
+- [x] Register `ItemProvider` in `lib/main.dart`
+- [x] Connect `ItemProvider` in `lib/screens/invoice_creation_screen.dart`
+- [x] Analyze and verify modified files
