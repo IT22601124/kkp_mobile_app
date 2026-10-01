@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:kkp_rep_mobile_app/models/user_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kkp_rep_mobile_app/dio/dio_client.dart';
 import 'package:kkp_rep_mobile_app/resources/api_routes.dart';
@@ -7,6 +8,8 @@ import 'package:kkp_rep_mobile_app/resources/api_routes.dart';
 class AuthProvider extends ChangeNotifier {
   bool _isLoggedIn = false;
   final DioClient _dioClient = DioClient();
+  UserModel? _user;
+  UserModel? get user => _user;
 
   bool get isLoggedIn => _isLoggedIn;
 
@@ -24,11 +27,26 @@ class AuthProvider extends ChangeNotifier {
           if (response.statusCode == 200) {
             if (data is Map) {
               // If backend explicitly returns success: false or valid: false
-              if (data['success'] == false || data['valid'] == false) {
+              if (data['success'] == false || (data['data'] is Map && data['data']['valid'] == false)) {
                 await logout();
                 return false;
+              } else {
+                Map<String, dynamic>? userMap;
+                if (data['data'] is Map && (data['data'] as Map).containsKey('user') && data['data']['user'] is Map) {
+                  userMap = Map<String, dynamic>.from(data['data']['user']);
+                } else if (data['user'] is Map) {
+                  userMap = Map<String, dynamic>.from(data['user']);
+                } else if (data['data'] is Map && (data['data'] as Map).containsKey('id')) {
+                  userMap = Map<String, dynamic>.from(data['data']);
+                }
+
+                if (userMap != null) {
+                  _user = UserModel.fromJson(userMap);
+                  debugPrint('User data loaded from token: ${_user?.name}, ${_user?.email}');
+                }
               }
             }
+
             _isLoggedIn = true;
             notifyListeners();
             return true;
@@ -76,6 +94,19 @@ class AuthProvider extends ChangeNotifier {
             token = data['token'].toString();
           } else if (data.containsKey('data') && data['data'] is Map && (data['data'] as Map).containsKey('token')) {
             token = data['data']['token'].toString();
+          }
+
+          Map<String, dynamic>? userMap;
+          if (data['user'] is Map) {
+            userMap = Map<String, dynamic>.from(data['user']);
+          } else if (data['data'] is Map && (data['data'] as Map).containsKey('user') && data['data']['user'] is Map) {
+            userMap = Map<String, dynamic>.from(data['data']['user']);
+          } else if (data['data'] is Map && (data['data'] as Map).containsKey('id')) {
+            userMap = Map<String, dynamic>.from(data['data']);
+          }
+
+          if (userMap != null) {
+            _user = UserModel.fromJson(userMap);
           }
         }
 
@@ -126,6 +157,7 @@ class AuthProvider extends ChangeNotifier {
       debugPrint('Logout API error (proceeding with local cleanup): $e');
     } finally {
       _isLoggedIn = false;
+      _user = null;
       _dioClient.clearAuthToken();
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('auth_token');

@@ -157,7 +157,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           children: [
             // Global Profile Header
             ProfileHeaderWidget(
-              profile: _repProfile,
               isDarkMode: widget.isDarkMode,
               onToggleTheme: widget.onToggleTheme,
             ),

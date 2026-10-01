@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'user_profile_screen.dart';
 import '../models/dsr_models.dart';
 import '../theme/app_theme.dart';
 
@@ -68,6 +69,69 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+
+              // User Profile Details Action Card
+              InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => UserProfileScreen(
+                        isDarkMode: widget.isDarkMode,
+                        onToggleTheme: widget.onToggleTheme,
+                        onLogout: widget.onLogout,
+                      ),
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.primaryOrange.withOpacity(0.5)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryOrange.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.person_outline, color: AppColors.primaryOrange, size: 22),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'View Full User Profile Details',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Account info, contact, role & settings',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right, color: AppColors.primaryOrange),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
 
               // Top Banner Card: Sales Summary & History Hub
               Container(

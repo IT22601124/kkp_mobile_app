@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:kkp_rep_mobile_app/dio/dio_client.dart';
 import 'package:kkp_rep_mobile_app/models/item_model.dart';
+import 'package:kkp_rep_mobile_app/models/rep_stock_model.dart';
 import 'package:kkp_rep_mobile_app/resources/api_routes.dart';
 
 class ItemProvider extends ChangeNotifier {
   bool isLoading = false;
   final DioClient _dioClient = DioClient();
   List<ItemModel> listItems = [];
+  List<RepStockModel> listRepStocks = [];
 
   Future<List<ItemModel>> getItems() async {
     isLoading = true;
@@ -70,34 +72,38 @@ class ItemProvider extends ChangeNotifier {
 
   void loadMockItems() {
     listItems = [
-      ItemModel(
-        id: 1,
-        itemCode: 'CARD-100',
-        itemName: 'Hutch Rs. 100 Recharge Card',
-        category: 'Recharge Cards',
-        unitPrice: 96.00,
-        stock: 500,
-        unit: 'unit',
-      ),
-      ItemModel(
-        id: 2,
-        itemCode: 'CARD-500',
-        itemName: 'Hutch Rs. 500 Super Card',
-        category: 'Recharge Cards',
-        unitPrice: 480.00,
-        stock: 430,
-        unit: 'unit',
-      ),
-      ItemModel(
-        id: 3,
-        itemCode: 'SIM-4G',
-        itemName: 'Hutch 4G SIM Starter Pack',
-        category: 'SIM Packs',
-        unitPrice: 250.00,
-        stock: 30,
-        unit: 'pack',
-      ),
+
     ];
     notifyListeners();
+  }
+
+  Future<List<RepStockModel>> getRepStocks(int repId) async {
+    isLoading = true;
+    notifyListeners();
+    try {
+      final response = await _dioClient.get('${ApiRoutes.repStocksUrl}/$repId');
+      if (response.statusCode == 200) {
+        final data = response.data;
+        List<dynamic> listData = [];
+        if (data is Map && data.containsKey('data') && data['data'] is List) {
+          listData = data['data'];
+        } else if (data is List) {
+          listData = data;
+        }
+
+        listRepStocks = listData
+            .map((e) => RepStockModel.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+        debugPrint('Fetched ${listRepStocks.length} rep stock items for rep #$repId');
+        notifyListeners();
+        return listRepStocks;
+      }
+    } catch (e) {
+      debugPrint('Error fetching rep stocks: $e');
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+    return listRepStocks;
   }
 }

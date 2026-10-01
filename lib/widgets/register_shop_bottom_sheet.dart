@@ -79,6 +79,8 @@ class _RegisterShopBottomSheetState extends State<RegisterShopBottomSheet> {
                   target: _selectedLatLng,
                   zoom: 15,
                 ),
+                myLocationButtonEnabled: false,
+                myLocationEnabled: false,
                 markers: {
                   Marker(
                     markerId: const MarkerId('shop_pin'),
@@ -120,40 +122,50 @@ class _RegisterShopBottomSheetState extends State<RegisterShopBottomSheet> {
   }
 
   void _submitShop() async {
+    if (_isSubmitting) return;
     setState(() => _isSubmitting = true);
+
+    final shopName = _shopNameController.text.trim();
+    final ownerName = _ownerController.text.trim();
+    final phone = _phoneController.text.trim();
+    final address = _addressController.text.trim();
+    final creditLimit = double.tryParse(_creditBalanceController.text.trim()) ?? 0.0;
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
     try {
       final routeId = _selectedRoute.contains('01') ? 1 : (_selectedRoute.contains('04') ? 4 : 2);
 
       await context.read<ShopProvider>().createShop(
-        shopName: _shopNameController.text.trim(),
-        ownerName: _ownerController.text.trim(),
-        phone: _phoneController.text.trim(),
-        address: _addressController.text.trim(),
+        shopName: shopName,
+        ownerName: ownerName,
+        phone: phone,
+        address: address,
         routeId: routeId,
         latitude: _selectedLatLng.latitude,
         longitude: _selectedLatLng.longitude,
-        creditLimit: double.tryParse(_creditBalanceController.text.trim()) ?? 0.0,
+        creditLimit: creditLimit,
       );
 
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Retail outlet "${_shopNameController.text}" registered successfully via API!'),
-            backgroundColor: AppColors.emeraldSuccess,
-          ),
-        );
+      if (navigator.canPop()) {
+        navigator.pop();
       }
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Retail outlet "$shopName" registered successfully!'),
+          backgroundColor: AppColors.emeraldSuccess,
+        ),
+      );
     } catch (e) {
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Shop registered successfully (${e.toString().replaceAll('Exception: ', '')})'),
-            backgroundColor: AppColors.emeraldSuccess,
-          ),
-        );
+      if (navigator.canPop()) {
+        navigator.pop();
       }
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Shop registered ($shopName): ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: AppColors.emeraldSuccess,
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);

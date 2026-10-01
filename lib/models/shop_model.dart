@@ -28,19 +28,32 @@ class ShopModel {
   });
 
   factory ShopModel.fromJson(Map<String, dynamic> json) {
+    double parseDouble(dynamic val) {
+      if (val == null) return 0.0;
+      if (val is num) return val.toDouble();
+      return double.tryParse(val.toString()) ?? 0.0;
+    }
+
+    int parseInt(dynamic val) {
+      if (val == null) return 0;
+      if (val is int) return val;
+      if (val is num) return val.toInt();
+      return int.tryParse(val.toString()) ?? 0;
+    }
+
     return ShopModel(
-      id: json['id'] ?? 0,
-      routeId: json['route_id'] ?? json['routeId'] ?? 1,
-      shopCode: json['shop_code'] ?? json['shopCode'] ?? '',
-      shopName: json['shop_name'] ?? json['shopName'] ?? '',
-      ownerName: json['owner_name'] ?? json['ownerName'] ?? '',
-      phone: json['phone'] ?? '',
-      address: json['address'] ?? '',
-      latitude: (json['latitude'] ?? 0.0).toDouble(),
-      longitude: (json['longitude'] ?? 0.0).toDouble(),
-      creditLimit: (json['credit_limit'] ?? json['creditLimit'] ?? 0.0).toDouble(),
-      currentCreditBalance: (json['current_credit_balance'] ?? json['currentCreditBalance'] ?? 0.0).toDouble(),
-      status: json['status'] ?? 'GOOD',
+      id: parseInt(json['id']),
+      routeId: parseInt(json['route_id'] ?? json['routeId'] ?? 1),
+      shopCode: json['shop_code']?.toString() ?? json['shopCode']?.toString() ?? '',
+      shopName: json['shop_name']?.toString() ?? json['shopName']?.toString() ?? '',
+      ownerName: json['owner_name']?.toString() ?? json['ownerName']?.toString() ?? '',
+      phone: json['phone']?.toString() ?? '',
+      address: json['address']?.toString() ?? '',
+      latitude: parseDouble(json['latitude']),
+      longitude: parseDouble(json['longitude']),
+      creditLimit: parseDouble(json['credit_limit'] ?? json['creditLimit']),
+      currentCreditBalance: parseDouble(json['current_credit_balance'] ?? json['currentCreditBalance']),
+      status: json['status']?.toString() ?? 'GOOD',
     );
   }
 
