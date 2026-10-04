@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-
+import 'package:provider/provider.dart';
+import '../dio/dio_client.dart';
+import '../models/branch_stock_model.dart';
+import '../provider/item_provider.dart';
+import '../theme/app_theme.dart';
 
 class RequestStockScreen extends StatefulWidget {
   const RequestStockScreen({super.key});
@@ -17,36 +21,36 @@ class _RequestStockScreenState extends State<RequestStockScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadRepStockItems();
+      _loadBranchStockItems();
     });
   }
 
-  Future<void> _loadRepStockItems() async {
-    final user = context.read<AuthProvider>().user;
-    final repId = user?.id ?? 7;
+  Future<void> _loadBranchStockItems() async {
     final itemProvider = context.read<ItemProvider>();
-
-    List<RepStockModel> stocks = itemProvider.listRepStocks;
-    if (stocks.isEmpty) {
-      stocks = await itemProvider.getRepStocks(repId);
-    }
+    await itemProvider.getBranchStocks();
+    List<BranchStockModel> branchStocks = itemProvider.listBranchStocks;
 
     if (mounted) {
       setState(() {
         _requisitionLines.clear();
-        if (stocks.isNotEmpty) {
-          for (var stock in stocks) {
+        if (branchStocks.isNotEmpty) {
+          for (var bs in branchStocks.take(3)) {
             _requisitionLines.add({
-              'item': '${stock.itemCode} - ${stock.itemName}',
-              'qtyController': TextEditingController(text: '${stock.quantity}'),
+              'itemId': bs.itemId,
+              'itemCode': bs.itemCode,
+              'itemName': bs.itemName,
+              'availableQty': bs.quantity,
+              'qtyController': TextEditingController(text: '${bs.quantity > 50 ? 50 : bs.quantity}'),
             });
           }
         } else {
-          // Fallback if rep has no current stock records
-          _requisitionLines.addAll([
-            {'item': 'CARD-100 - Hutch Rs. 100 Recharge Card', 'qtyController': TextEditingController(text: '250')},
-            {'item': 'SIM-4G - Hutch 4G SIM Starter Pack', 'qtyController': TextEditingController(text: '50')},
-          ]);
+          _requisitionLines.add({
+            'itemId': 1,
+            'itemCode': 'HUT-SIM-001',
+            'itemName': 'SIM Card 4G',
+            'availableQty': 150,
+            'qtyController': TextEditingController(text: '50'),
+          });
         }
         _isLoading = false;
       });
@@ -64,12 +68,61 @@ class _RequestStockScreenState extends State<RequestStockScreen> {
   }
 
   void _addItemLine() {
-    setState(() {
-      _requisitionLines.add({
-        'item': 'RELOAD-EASY - Easy Reload Balance',
-        'qtyController': TextEditingController(text: '100'),
-      });
-    });
+    final itemProvider = context.read<ItemProvider>();
+    final branchStocks = itemProvider.listBranchStocks;
+
+    if (branchStocks.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No branch warehouse stock available')),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
+          title: const Text('Select Branch Stock Item', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: branchStocks.length,
+              separatorBuilder: (context, index) => Divider(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+              itemBuilder: (context, index) {
+                final bs = branchStocks[index];
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(bs.itemName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain)),
+                  subtitle: Text('Code: ${bs.itemCode} • Hub Stock: ${bs.quantity} units', style: const TextStyle(fontSize: 11, color: AppColors.cyanAccent)),
+                  trailing: Text('LKR ${bs.unitPrice.toStringAsFixed(2)}', style: const TextStyle(color: AppColors.emeraldSuccess, fontWeight: FontWeight.bold, fontSize: 13)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    setState(() {
+                      _requisitionLines.add({
+                        'itemId': bs.itemId,
+                        'itemCode': bs.itemCode,
+                        'itemName': bs.itemName,
+                        'availableQty': bs.quantity,
+                        'qtyController': TextEditingController(text: '50'),
+                      });
+                    });
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _removeItemLine(int index) {
@@ -81,14 +134,64 @@ class _RequestStockScreenState extends State<RequestStockScreen> {
     });
   }
 
-  void _submitRequisition() {
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Multi-Item Requisition Request successfully sent to Branch Hub!'),
-        backgroundColor: AppColors.emeraldSuccess,
-      ),
-    );
+  Future<void> _submitRequisition() async {
+    setState(() => _isLoading = true);
+    try {
+      final List<Map<String, dynamic>> itemsPayload = [];
+      for (var line in _requisitionLines) {
+        final itemId = line['itemId'] as int?;
+        final qtyText = (line['qtyController'] as TextEditingController).text;
+        final qty = int.tryParse(qtyText) ?? 0;
+        if (itemId != null && qty > 0) {
+          itemsPayload.add({
+            'item_id': itemId,
+            'quantity': qty,
+          });
+        }
+      }
+
+      if (itemsPayload.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please add at least one item with valid quantity'), backgroundColor: AppColors.roseDanger),
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final dioClient = DioClient();
+      final response = await dioClient.post('stock-requests', data: {
+        'items': itemsPayload,
+        'notes': _selectedUrgency,
+      });
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Multi-Item Requisition Request successfully sent to Branch Hub!'),
+              backgroundColor: AppColors.emeraldSuccess,
+            ),
+          );
+        }
+      } else {
+        throw Exception('Failed with status ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error submitting stock requisition: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to submit requisition: ${e.toString()}'),
+            backgroundColor: AppColors.roseDanger,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -140,7 +243,7 @@ class _RequestStockScreenState extends State<RequestStockScreen> {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      'Build Multi-Item Requisition Order to Branch Hub',
+                      'Build Multi-Item Requisition Order to Branch Warehouse Hub',
                       style: TextStyle(fontSize: 12, color: AppColors.darkTextSub),
                     ),
                   ],
@@ -152,6 +255,8 @@ class _RequestStockScreenState extends State<RequestStockScreen> {
               ...List.generate(_requisitionLines.length, (index) {
                 final line = _requisitionLines[index];
                 final controller = line['qtyController'] as TextEditingController;
+                final itemText = '${line['itemCode']} - ${line['itemName']}';
+                final availableQty = line['availableQty'] ?? 0;
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
@@ -171,12 +276,17 @@ class _RequestStockScreenState extends State<RequestStockScreen> {
                             const Text('Product Item', style: TextStyle(fontSize: 10, color: AppColors.darkTextSub, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 4),
                             Text(
-                              line['item'] as String,
+                              itemText,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
                                 color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
                               ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Warehouse Stock: $availableQty units available',
+                              style: const TextStyle(fontSize: 11, color: AppColors.cyanAccent, fontWeight: FontWeight.w600),
                             ),
                           ],
                         ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kkp_rep_mobile_app/dio/dio_client.dart';
+import 'package:kkp_rep_mobile_app/models/branch_stock_model.dart';
 import 'package:kkp_rep_mobile_app/models/item_model.dart';
 import 'package:kkp_rep_mobile_app/models/rep_stock_model.dart';
 import 'package:kkp_rep_mobile_app/resources/api_routes.dart';
@@ -9,6 +10,8 @@ class ItemProvider extends ChangeNotifier {
   final DioClient _dioClient = DioClient();
   List<ItemModel> listItems = [];
   List<RepStockModel> listRepStocks = [];
+  List<dynamic> listStockRequests = [];
+  List<BranchStockModel> listBranchStocks = [];
 
   Future<List<ItemModel>> getItems() async {
     isLoading = true;
@@ -71,9 +74,7 @@ class ItemProvider extends ChangeNotifier {
   }
 
   void loadMockItems() {
-    listItems = [
-
-    ];
+    listItems = [];
     notifyListeners();
   }
 
@@ -91,10 +92,33 @@ class ItemProvider extends ChangeNotifier {
           listData = data;
         }
 
-        listRepStocks = listData
-            .map((e) => RepStockModel.fromJson(Map<String, dynamic>.from(e)))
-            .toList();
-        debugPrint('Fetched ${listRepStocks.length} rep stock items for rep #$repId');
+        List<RepStockModel> parsedStocks = [];
+        for (var stockGroup in listData) {
+          if (stockGroup is Map) {
+            final groupMap = Map<String, dynamic>.from(stockGroup);
+            final parentStatus = groupMap['status']?.toString() ?? 'ACTIVE';
+            final repIdVal = groupMap['rep_id'];
+            final branchIdVal = groupMap['branch_id'];
+
+            if (groupMap.containsKey('items') && groupMap['items'] is List) {
+              for (var itemEntry in (groupMap['items'] as List)) {
+                if (itemEntry is Map) {
+                  final itemMap = Map<String, dynamic>.from(itemEntry);
+                  itemMap['rep_id'] = itemMap['rep_id'] ?? repIdVal;
+                  itemMap['branch_id'] = itemMap['branch_id'] ?? branchIdVal;
+                  itemMap['status'] = itemMap['status'] ?? parentStatus;
+                  itemMap['id'] = itemMap['id'] ?? groupMap['id'];
+                  parsedStocks.add(RepStockModel.fromJson(itemMap));
+                }
+              }
+            } else {
+              parsedStocks.add(RepStockModel.fromJson(groupMap));
+            }
+          }
+        }
+
+        listRepStocks = parsedStocks;
+        debugPrint('Fetched ${listRepStocks.length} flattened rep stock items for rep #$repId');
         notifyListeners();
         return listRepStocks;
       }
@@ -105,5 +129,50 @@ class ItemProvider extends ChangeNotifier {
       notifyListeners();
     }
     return listRepStocks;
+  }
+
+  Future<List<dynamic>> getStockRequests() async {
+    try {
+      final response = await _dioClient.get('stock-requests');
+      if (response.statusCode == 200) {
+        final data = response.data;
+        List<dynamic> listData = [];
+        if (data is Map && data.containsKey('data') && data['data'] is List) {
+          listData = data['data'];
+        } else if (data is List) {
+          listData = data;
+        }
+        listStockRequests = listData;
+        notifyListeners();
+        return listStockRequests;
+      }
+    } catch (e) {
+      debugPrint('Error fetching stock requests: $e');
+    }
+    return listStockRequests;
+  }
+
+  Future<List<BranchStockModel>> getBranchStocks() async {
+    try {
+      final response = await _dioClient.get('stocks/branch');
+      if (response.statusCode == 200) {
+        final data = response.data;
+        List<dynamic> listData = [];
+        if (data is Map && data.containsKey('data') && data['data'] is List) {
+          listData = data['data'];
+        } else if (data is List) {
+          listData = data;
+        }
+
+        listBranchStocks = listData
+            .map((e) => BranchStockModel.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+        notifyListeners();
+        return listBranchStocks;
+      }
+    } catch (e) {
+      debugPrint('Error fetching branch stocks: $e');
+    }
+    return listBranchStocks;
   }
 }
