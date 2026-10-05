@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kkp_rep_mobile_app/dio/dio_client.dart';
+import 'package:kkp_rep_mobile_app/models/route_model.dart';
 import 'package:kkp_rep_mobile_app/models/shop_model.dart';
 import 'package:kkp_rep_mobile_app/resources/api_routes.dart';
 
@@ -7,6 +8,7 @@ class ShopProvider extends ChangeNotifier {
   bool isLoading = false;
   final DioClient _dioClient = DioClient();
   List<ShopModel> listShops = [];
+  List<RouteModel> listRoutes = [];
 
   Future<ShopModel?> createShop({
     required String shopName,
@@ -17,6 +19,7 @@ class ShopProvider extends ChangeNotifier {
     required double latitude,
     required double longitude,
     required double creditLimit,
+    double currentCreditBalance = 0.0,
   }) async {
     isLoading = true;
     notifyListeners();
@@ -32,6 +35,7 @@ class ShopProvider extends ChangeNotifier {
           "latitude": latitude,
           "longitude": longitude,
           "credit_limit": creditLimit,
+          "current_credit_balance": currentCreditBalance,
         },
       );
 
@@ -47,7 +51,7 @@ class ShopProvider extends ChangeNotifier {
         }
         
         if (newShop != null) {
-          listShops.insert(0, newShop); // Add the new shop to the top of the list
+          listShops.insert(0, newShop);
           notifyListeners();
           return newShop;
         }
@@ -56,6 +60,51 @@ class ShopProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Create shop error: $e');
       rethrow;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<List<ShopModel>> getShopsByRoute({int? routeId}) async {
+    isLoading = true;
+    notifyListeners();
+    try {
+      final url = routeId != null ? '${ApiRoutes.shopsByRouteUrl}/$routeId' : ApiRoutes.shopsByRouteUrl;
+      final response = await _dioClient.get(url);
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        List<dynamic> shopsJson = [];
+
+        if (data is Map) {
+          if (data.containsKey('data')) {
+            final innerData = data['data'];
+            if (innerData is Map && innerData.containsKey('shops') && innerData['shops'] is List) {
+              shopsJson = innerData['shops'];
+            } else if (innerData is List) {
+              shopsJson = innerData;
+            }
+          } else if (data.containsKey('shops') && data['shops'] is List) {
+            shopsJson = data['shops'];
+          }
+        } else if (data is List) {
+          shopsJson = data;
+        }
+
+        debugPrint('Fetched ${shopsJson.length} shops for assigned route from API');
+
+        listShops = shopsJson
+            .map((json) => ShopModel.fromJson(Map<String, dynamic>.from(json)))
+            .toList();
+
+        notifyListeners();
+        return listShops;
+      }
+      return listShops;
+    } catch (e) {
+      debugPrint('Error fetching shops by route: $e, fallback to getMyShops');
+      return await getMyShops();
     } finally {
       isLoading = false;
       notifyListeners();
@@ -111,6 +160,38 @@ class ShopProvider extends ChangeNotifier {
     }
   }
 
+  Future<List<RouteModel>> getRoutes() async {
+    try {
+      final response = await _dioClient.get(ApiRoutes.routesUrl);
+      if (response.statusCode == 200) {
+        final data = response.data;
+        List<dynamic> routesJson = [];
+
+        if (data is List) {
+          routesJson = data;
+        } else if (data is Map) {
+          if (data.containsKey('data') && data['data'] is List) {
+            routesJson = data['data'];
+          } else if (data.containsKey('routes') && data['routes'] is List) {
+            routesJson = data['routes'];
+          }
+        }
+
+        listRoutes = routesJson
+            .map((json) => RouteModel.fromJson(Map<String, dynamic>.from(json)))
+            .toList();
+
+        debugPrint('Fetched ${listRoutes.length} routes from API');
+        notifyListeners();
+        return listRoutes;
+      }
+      return listRoutes;
+    } catch (e) {
+      debugPrint('Error fetching routes: $e');
+      return listRoutes;
+    }
+  }
+
   Future<bool> deleteShop(int id) async {
     isLoading = true;
     notifyListeners();
@@ -118,7 +199,6 @@ class ShopProvider extends ChangeNotifier {
       final response = await _dioClient.delete('${ApiRoutes.deleteShopUrl}/$id');
       
       if (response.statusCode == 200) {
-        // Remove from local list
         listShops.removeWhere((shop) => shop.id == id);
         notifyListeners();
         return true;
@@ -132,5 +212,4 @@ class ShopProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-
 }

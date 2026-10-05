@@ -1,5 +1,5 @@
 class ApiRoutes {
-  static const String baseUrl = 'http://172.18.128.1:8000/api/v1/';
+  static const String baseUrl = 'http://172.21.96.1:8000/api/v1/';
 
   static const String loginUrl = 'mobile/rep/login';
   static const String checkTokenUrl = 'mobile/rep/check-token';
@@ -11,4 +11,6 @@ class ApiRoutes {
   static const String deleteShopUrl = 'mobile/shops';
   static const String getItemsUrl = 'mobile/items';
   static const String repStocksUrl = 'rep-stocks/rep';
+  static const String routesUrl = 'routes';
+  static const String shopsByRouteUrl = 'shops/route';
 }

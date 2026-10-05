@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
+import '../models/route_model.dart';
 import '../provider/shop_provider.dart';
 import '../theme/app_theme.dart';
 
@@ -35,19 +36,39 @@ class _RegisterShopBottomSheetState extends State<RegisterShopBottomSheet> {
   final _ownerController = TextEditingController(text: 'Nimal Perera');
   final _phoneController = TextEditingController(text: '0712345678');
   final _addressController = TextEditingController(text: '45 Main Street, Kandy');
-  final _creditBalanceController = TextEditingController(text: '100000.00');
+  final _creditLimitController = TextEditingController(text: '100000.00');
+  final _creditBalanceController = TextEditingController(text: '0.00');
 
-  String _selectedRoute = 'Dampola Route (R-01)';
+  RouteModel? _selectedRouteModel;
+  bool _isLoadingRoutes = true;
+
   LatLng _selectedLatLng = const LatLng(7.2906, 80.6337);
   String _latLongCoordinates = '7.2906° N, 80.6337° E (Pinned)';
   bool _isSubmitting = false;
 
-  final List<String> _routes = [
-    'Dampola Route (R-01)',
-    'Route R-04: Colombo North',
-    'Route R-02: Kandy Expressway',
-    'Route R-07: Galle Coastal',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadRoutes();
+    });
+  }
+
+  Future<void> _loadRoutes() async {
+    final shopProvider = context.read<ShopProvider>();
+    List<RouteModel> routes = shopProvider.listRoutes;
+    if (routes.isEmpty) {
+      routes = await shopProvider.getRoutes();
+    }
+    if (mounted) {
+      setState(() {
+        if (routes.isNotEmpty) {
+          _selectedRouteModel = routes.first;
+        }
+        _isLoadingRoutes = false;
+      });
+    }
+  }
 
   void _generateShopCode() {
     final randomNum = 1000 + Random().nextInt(9000);
@@ -129,13 +150,14 @@ class _RegisterShopBottomSheetState extends State<RegisterShopBottomSheet> {
     final ownerName = _ownerController.text.trim();
     final phone = _phoneController.text.trim();
     final address = _addressController.text.trim();
-    final creditLimit = double.tryParse(_creditBalanceController.text.trim()) ?? 0.0;
+    final creditLimit = double.tryParse(_creditLimitController.text.trim()) ?? 100000.0;
+    final currentCreditBalance = double.tryParse(_creditBalanceController.text.trim()) ?? 0.0;
+    final routeId = _selectedRouteModel?.id ?? 1;
+
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
 
     try {
-      final routeId = _selectedRoute.contains('01') ? 1 : (_selectedRoute.contains('04') ? 4 : 2);
-
       await context.read<ShopProvider>().createShop(
         shopName: shopName,
         ownerName: ownerName,
@@ -145,6 +167,7 @@ class _RegisterShopBottomSheetState extends State<RegisterShopBottomSheet> {
         latitude: _selectedLatLng.latitude,
         longitude: _selectedLatLng.longitude,
         creditLimit: creditLimit,
+        currentCreditBalance: currentCreditBalance,
       );
 
       if (navigator.canPop()) {
@@ -294,6 +317,12 @@ class _RegisterShopBottomSheetState extends State<RegisterShopBottomSheet> {
                     ),
                     const SizedBox(height: 14),
 
+                    // Credit Limit (LKR)
+                    const Text('Credit Limit (LKR)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.darkTextSub)),
+                    const SizedBox(height: 6),
+                    TextField(controller: _creditLimitController, keyboardType: TextInputType.number),
+                    const SizedBox(height: 14),
+
                     // Current Credit Balance (LKR)
                     const Text('Current Credit Balance (LKR)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.darkTextSub)),
                     const SizedBox(height: 6),
@@ -303,23 +332,50 @@ class _RegisterShopBottomSheetState extends State<RegisterShopBottomSheet> {
                     // Choose Route Dropdown
                     const Text('Assign Route', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.darkTextSub)),
                     const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkInput : AppColors.lightInput,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _selectedRoute,
-                          isExpanded: true,
-                          items: _routes
-                              .map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(fontSize: 14))))
-                              .toList(),
-                          onChanged: (val) => setState(() => _selectedRoute = val!),
-                        ),
-                      ),
+                    Consumer<ShopProvider>(
+                      builder: (context, shopProvider, _) {
+                        final routes = shopProvider.listRoutes;
+                        if (_isLoadingRoutes && routes.isEmpty) {
+                          return const SizedBox(
+                            height: 48,
+                            child: Center(child: CircularProgressIndicator(color: AppColors.cyanAccent, strokeWidth: 2)),
+                          );
+                        }
+
+                        if (routes.isNotEmpty && _selectedRouteModel == null) {
+                          _selectedRouteModel = routes.first;
+                        }
+
+                        if (routes.isNotEmpty && _selectedRouteModel != null && !routes.contains(_selectedRouteModel)) {
+                          _selectedRouteModel = routes.firstWhere((r) => r.id == _selectedRouteModel!.id, orElse: () => routes.first);
+                        }
+
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.darkInput : AppColors.lightInput,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<RouteModel>(
+                              value: _selectedRouteModel,
+                              isExpanded: true,
+                              items: routes
+                                  .map((r) => DropdownMenuItem<RouteModel>(
+                                        value: r,
+                                        child: Text(r.displayName, style: const TextStyle(fontSize: 14)),
+                                      ))
+                                  .toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() => _selectedRouteModel = val);
+                                }
+                              },
+                            ),
+                          ),
+                        );
+                      },
                     ),
                     const SizedBox(height: 20),
                   ],

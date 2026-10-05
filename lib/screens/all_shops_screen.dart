@@ -20,14 +20,12 @@ class _AllShopsScreenState extends State<AllShopsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final shopProvider = Provider.of<ShopProvider>(context, listen: false);
-      if (shopProvider.listShops.isEmpty) {
-        shopProvider.getMyShops();
-      }
+      shopProvider.getShopsByRoute();
     });
   }
 
   Future<void> _fetchShops() async {
-    await Provider.of<ShopProvider>(context, listen: false).getMyShops();
+    await Provider.of<ShopProvider>(context, listen: false).getShopsByRoute();
   }
 
   Future<void> _deleteShop(int id, String name) async {
