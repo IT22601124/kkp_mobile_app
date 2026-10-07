@@ -31,19 +31,19 @@ class RegisterShopBottomSheet extends StatefulWidget {
 }
 
 class _RegisterShopBottomSheetState extends State<RegisterShopBottomSheet> {
-  final _shopNameController = TextEditingController(text: 'Kandy City Traders');
-  final _shopCodeController = TextEditingController(text: 'SHP-20260920-0006');
-  final _ownerController = TextEditingController(text: 'Nimal Perera');
-  final _phoneController = TextEditingController(text: '0712345678');
-  final _addressController = TextEditingController(text: '45 Main Street, Kandy');
-  final _creditLimitController = TextEditingController(text: '100000.00');
-  final _creditBalanceController = TextEditingController(text: '0.00');
+  final _shopNameController = TextEditingController(text: '');
+  final _shopCodeController = TextEditingController(text: '');
+  final _ownerController = TextEditingController(text: '');
+  final _phoneController = TextEditingController(text: '');
+  final _addressController = TextEditingController(text: '');
+  final _creditLimitController = TextEditingController(text: '');
+  final _creditBalanceController = TextEditingController(text: '');
 
   RouteModel? _selectedRouteModel;
   bool _isLoadingRoutes = true;
 
   LatLng _selectedLatLng = const LatLng(7.2906, 80.6337);
-  String _latLongCoordinates = '7.2906° N, 80.6337° E (Pinned)';
+  String _latLongCoordinates = '';
   bool _isSubmitting = false;
 
   @override
@@ -220,7 +220,6 @@ class _RegisterShopBottomSheetState extends State<RegisterShopBottomSheet> {
                   'Register New Retail Shop Outlet',
                   style: TextStyle(
                     fontSize: 18,
-                    fontWeight: FontWeight.bold,
                     color: AppColors.emeraldSuccess,
                   ),
                 ),
@@ -239,14 +238,12 @@ class _RegisterShopBottomSheetState extends State<RegisterShopBottomSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 4),
-
-                    // Retail Shop / Store Name
-                    const Text('Retail Shop / Store Name', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.darkTextSub)),
+                    const Text('Retail Shop / Store Name', style: TextStyle(fontSize: 14, color: AppColors.darkTextSub)),
                     const SizedBox(height: 6),
-                    TextField(controller: _shopNameController),
-                    const SizedBox(height: 14),
+                    TextField(controller: _shopNameController,
+                    ),
 
-                    // Shop Code with Generate Code Button
+                    const SizedBox(height: 14),
                     const Text('Shop Code', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.darkTextSub)),
                     const SizedBox(height: 6),
                     Row(
@@ -260,7 +257,7 @@ class _RegisterShopBottomSheetState extends State<RegisterShopBottomSheet> {
                           icon: const Icon(Icons.autorenew, size: 16),
                           label: const Text('Generate Code', style: TextStyle(fontSize: 12)),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.cyanAccent,
+                            backgroundColor: AppColors.amberWarning,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                           ),
@@ -298,19 +295,19 @@ class _RegisterShopBottomSheetState extends State<RegisterShopBottomSheet> {
                         decoration: BoxDecoration(
                           color: isDark ? AppColors.darkInput : AppColors.lightInput,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.cyanAccent.withOpacity(0.5)),
+                          border: Border.all(color: AppColors.amberWarning.withOpacity(0.5)),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Row(
                               children: [
-                                const Icon(Icons.location_on, color: AppColors.cyanAccent, size: 20),
+                                const Icon(Icons.location_on, color: AppColors.amberWarning, size: 20),
                                 const SizedBox(width: 8),
                                 Text(_latLongCoordinates, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                               ],
                             ),
-                            const Text('Mark on Map', style: TextStyle(color: AppColors.cyanAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                            const Text('Mark on Map', style: TextStyle(color: AppColors.amberWarning, fontSize: 12, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),

@@ -130,18 +130,3 @@ class CashSheetSummary {
   double get cashVariance => physicalCashCount - cashCollected;
 }
 
-class DsrRepProfile {
-  final String repCode;
-  final String name;
-  final String phone;
-  final String branchName;
-  final String activeRoute;
-
-  DsrRepProfile({
-    required this.repCode,
-    required this.name,
-    required this.phone,
-    required this.branchName,
-    required this.activeRoute,
-  });
-}

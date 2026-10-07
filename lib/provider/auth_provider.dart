@@ -42,7 +42,7 @@ class AuthProvider extends ChangeNotifier {
 
                 if (userMap != null) {
                   _user = UserModel.fromJson(userMap);
-                  debugPrint('User data loaded from token: ${_user?.name}, ${_user?.email}');
+                  debugPrint('User data loaded from token: ${_user?.name}, ${_user?.repProfile?.assignedRouteId}');
                 }
               }
             }

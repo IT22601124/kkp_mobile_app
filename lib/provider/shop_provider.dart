@@ -70,29 +70,30 @@ class ShopProvider extends ChangeNotifier {
     isLoading = true;
     notifyListeners();
     try {
-      final url = routeId != null ? '${ApiRoutes.shopsByRouteUrl}/$routeId' : ApiRoutes.shopsByRouteUrl;
-      final response = await _dioClient.get(url);
+      final response = await _dioClient.get(
+        ApiRoutes.shopsByRouteUrl,
+        queryParameters: routeId != null ? {'route_id': routeId} : null,
+      );
 
       if (response.statusCode == 200) {
         final data = response.data;
         List<dynamic> shopsJson = [];
 
         if (data is Map) {
-          if (data.containsKey('data')) {
-            final innerData = data['data'];
-            if (innerData is Map && innerData.containsKey('shops') && innerData['shops'] is List) {
-              shopsJson = innerData['shops'];
-            } else if (innerData is List) {
-              shopsJson = innerData;
+          final target = data.containsKey('data') ? data['data'] : data;
+          if (target is List) {
+            shopsJson = target;
+          } else if (target is Map) {
+            if (target.containsKey('shops') && target['shops'] is List) {
+              shopsJson = target['shops'];
+            } else if (target.isNotEmpty && (target.containsKey('id') || target.containsKey('shop_name') || target.containsKey('shop_code') || target.containsKey('shopName'))) {
+              shopsJson = [target];
             }
-          } else if (data.containsKey('shops') && data['shops'] is List) {
-            shopsJson = data['shops'];
           }
         } else if (data is List) {
           shopsJson = data;
         }
 
-        debugPrint('Fetched ${shopsJson.length} shops for assigned route from API');
 
         listShops = shopsJson
             .map((json) => ShopModel.fromJson(Map<String, dynamic>.from(json)))
@@ -103,8 +104,8 @@ class ShopProvider extends ChangeNotifier {
       }
       return listShops;
     } catch (e) {
-      debugPrint('Error fetching shops by route: $e, fallback to getMyShops');
-      return await getMyShops();
+      debugPrint('Error fetching shops by route: $e');
+      return listShops;
     } finally {
       isLoading = false;
       notifyListeners();
@@ -126,27 +127,27 @@ class ShopProvider extends ChangeNotifier {
         final data = response.data;
         List<dynamic> shopsJson = [];
 
-        if (data is List) {
-          shopsJson = data;
-        } else if (data is Map) {
-          if (data.containsKey('data')) {
-            final nestedData = data['data'];
-            if (nestedData is List) {
-              shopsJson = nestedData;
-            } else if (nestedData is Map && nestedData.containsKey('shops') && nestedData['shops'] is List) {
-              shopsJson = nestedData['shops'];
+        if (data is Map) {
+          final target = data.containsKey('data') ? data['data'] : data;
+          if (target is List) {
+            shopsJson = target;
+          } else if (target is Map) {
+            if (target.containsKey('shops') && target['shops'] is List) {
+              shopsJson = target['shops'];
+            } else if (target.isNotEmpty && (target.containsKey('id') || target.containsKey('shop_name') || target.containsKey('shop_code') || target.containsKey('shopName'))) {
+              shopsJson = [target];
             }
-          } else if (data.containsKey('shops') && data['shops'] is List) {
-            shopsJson = data['shops'];
           }
+        } else if (data is List) {
+          shopsJson = data;
         }
-        
+
         debugPrint('Fetched ${shopsJson.length} shops from API');
-        
+
         listShops = shopsJson
             .map((json) => ShopModel.fromJson(Map<String, dynamic>.from(json)))
             .toList();
-        
+
         notifyListeners();
         return listShops;
       }

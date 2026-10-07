@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:kkp_rep_mobile_app/models/dsr_rep_profile.dart';
 import 'user_profile_screen.dart';
-import '../models/dsr_models.dart';
 import '../theme/app_theme.dart';
 
 class ProfileSettingsScreen extends StatefulWidget {

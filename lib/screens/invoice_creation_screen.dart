@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:kkp_rep_mobile_app/provider/sales_provider.dart';
 import '../models/dsr_models.dart';
 import '../models/item_model.dart';
+import '../models/shop_model.dart';
+import '../provider/auth_provider.dart';
 import '../provider/item_provider.dart';
+import '../provider/shop_provider.dart';
 import '../theme/app_theme.dart';
 
 class InvoiceCreationScreen extends StatefulWidget {
@@ -15,50 +19,45 @@ class InvoiceCreationScreen extends StatefulWidget {
 }
 
 class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
-  Outlet? _selectedOutlet;
+  ShopModel? _selectedShop;
   String _productSearchQuery = '';
   final List<Map<String, dynamic>> _cartItems = [
-    {
-      'name': 'CARD-100 (Recharge Card)',
-      'unitPrice': 96.00,
-      'qty': 50,
-      'unit': 'unit',
-    },
-    {
-      'name': 'SIM-4G (4G SIM Pack)',
-      'unitPrice': 250.00,
-      'qty': 10,
-      'unit': 'pack',
-    },
+
   ];
 
   final List<Map<String, dynamic>> _catalogItems = [
-    {
-      'name': 'Hutch Rs. 100 Recharge Card',
-      'code': 'CARD-100',
-      'stock': '500 units',
-      'price': 96.00,
-    },
-    {
-      'name': 'Hutch Rs. 500 Super Card',
-      'code': 'CARD-500',
-      'stock': '430 units',
-      'price': 480.00,
-    },
-    {
-      'name': 'Hutch 4G SIM Starter Pack',
-      'code': 'SIM-4G',
-      'stock': '30 units',
-      'price': 250.00,
-    },
+
   ];
 
   @override
   void initState() {
     super.initState();
-    _selectedOutlet = widget.initialOutlet;
+    if (widget.initialOutlet != null) {
+      _selectedShop = ShopModel(
+        id: widget.initialOutlet!.id,
+        routeId: 1,
+        shopCode: 'SH-${widget.initialOutlet!.id}',
+        shopName: widget.initialOutlet!.shopName,
+        ownerName: widget.initialOutlet!.ownerName,
+        phone: widget.initialOutlet!.phone,
+        address: widget.initialOutlet!.address,
+        latitude: 0,
+        longitude: 0,
+        creditLimit: 0,
+        currentCreditBalance: widget.initialOutlet!.outstandingBalance,
+        status: 'GOOD',
+      );
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final shopProvider = Provider.of<ShopProvider>(context, listen: false);
       final itemProvider = Provider.of<ItemProvider>(context, listen: false);
+
+      if (shopProvider.listShops.isEmpty) {
+        int? routeId = authProvider.user?.repProfile?.assignedRouteId;
+        shopProvider.getShopsByRoute(routeId: routeId);
+      }
+
       if (itemProvider.listItems.isEmpty) {
         itemProvider.getItems();
       }
@@ -75,21 +74,220 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
     });
   }
 
-  void _addToCart(String code, String name, double price, String unit) {
-    setState(() {
-      final index = _cartItems.indexWhere((item) =>
-          (item['name'] as String).contains(code) || (item['name'] as String).contains(name));
-      if (index >= 0) {
-        _cartItems[index]['qty'] = (_cartItems[index]['qty'] as int) + 1;
-      } else {
-        _cartItems.add({
-          'name': '$code ($name)',
-          'unitPrice': price,
-          'qty': 1,
-          'unit': unit,
-        });
-      }
-    });
+  void _openQuantityDialog(ItemModel item) {
+    final existingIdx = _cartItems.indexWhere((c) =>
+        (c['code'] != null && c['code'] == item.itemCode) ||
+        (c['name'] as String).contains(item.itemCode) ||
+        (c['name'] as String).contains(item.itemName));
+
+    final int initialQty = existingIdx != -1 ? (_cartItems[existingIdx]['qty'] as int) : 1;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final TextEditingController qtyController = TextEditingController(text: initialQty.toString());
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        int currentQty = initialQty;
+
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final lineTotal = currentQty * item.unitPrice;
+
+            void updateQty(int newQty) {
+              if (newQty < 0) newQty = 0;
+              setModalState(() {
+                currentQty = newQty;
+                qtyController.text = newQty.toString();
+              });
+            }
+
+            return Padding(
+              padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.itemName,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Code: ${item.itemCode} • Stock: ${item.stock} ${item.unit}',
+                              style: const TextStyle(fontSize: 12, color: AppColors.amberWarning, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 20),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Unit Price: LKR ${item.unitPrice.toStringAsFixed(2)}',
+                        style: TextStyle(fontSize: 13, color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub),
+                      ),
+                      Text(
+                        'Subtotal: LKR ${lineTotal.toStringAsFixed(2)}',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.emeraldSuccess),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  const Text('Select / Enter Quantity:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.amberWarning)),
+                  const SizedBox(height: 10),
+
+                  Row(
+                    children: [
+                      InkWell(
+                        onTap: () {
+                          if (currentQty > 0) updateQty(currentQty - 1);
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.darkInput : AppColors.lightInput,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                          ),
+                          child: const Icon(Icons.remove, size: 20, color: AppColors.roseDanger),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: qtyController,
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
+                          ),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onChanged: (val) {
+                            final parsed = int.tryParse(val);
+                            if (parsed != null && parsed >= 0) {
+                              setModalState(() {
+                                currentQty = parsed;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      InkWell(
+                        onTap: () => updateQty(currentQty + 1),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.darkInput : AppColors.lightInput,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                          ),
+                          child: const Icon(Icons.add, size: 20, color: AppColors.emeraldSuccess),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [1, 5, 10, 25, 50, 100].map((preset) {
+                      final isSelected = currentQty == preset;
+                      return ChoiceChip(
+                        label: Text('+$preset'),
+                        selected: isSelected,
+                        selectedColor: AppColors.primaryOrange,
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.white : (isDark ? AppColors.darkTextMain : AppColors.lightTextMain),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        onSelected: (_) => updateQty(preset),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          if (existingIdx != -1) {
+                            if (currentQty <= 0) {
+                              _cartItems.removeAt(existingIdx);
+                            } else {
+                              _cartItems[existingIdx]['qty'] = currentQty;
+                            }
+                          } else if (currentQty > 0) {
+                            _cartItems.add({
+                              'id': item.id,
+                              'code': item.itemCode,
+                              'itemName': item.itemName,
+                              'name': '${item.itemCode} (${item.itemName})',
+                              'unitPrice': item.unitPrice,
+                              'qty': currentQty,
+                              'unit': item.unit,
+                            });
+                          }
+                        });
+                        Navigator.pop(ctx);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryOrange,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text(
+                        existingIdx != -1
+                            ? (currentQty <= 0 ? 'Remove from Cart' : 'Update Quantity in Cart')
+                            : 'Add to Cart ($currentQty ${item.unit})',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void _updateCartQty(int index, int delta) {
@@ -101,6 +299,338 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
         _cartItems[index]['qty'] = newQty;
       }
     });
+  }
+
+  void _openPaymentBottomSheet() {
+    if (_selectedShop == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a shop first'),
+          backgroundColor: AppColors.roseDanger,
+        ),
+      );
+      return;
+    }
+
+    if (_cartItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cart is empty. Add products before proceeding.'),
+          backgroundColor: AppColors.roseDanger,
+        ),
+      );
+      return;
+    }
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    String paymentType = 'CASH';
+    final double subtotal = _totalBillPayable;
+    final discountController = TextEditingController(text: '0.00');
+    final taxController = TextEditingController(text: '0.00');
+    final paidAmountController = TextEditingController(text: subtotal.toStringAsFixed(2));
+    final notesController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final double discount = double.tryParse(discountController.text) ?? 0.0;
+            final double tax = double.tryParse(taxController.text) ?? 0.0;
+            final double totalAmount = (subtotal - discount + tax).clamp(0.0, double.infinity);
+            final double paidAmount = double.tryParse(paidAmountController.text) ?? 0.0;
+            final double dueAmount = (totalAmount - paidAmount).clamp(0.0, double.infinity);
+
+            return Padding(
+              padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Sale Checkout & Payment',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Shop: ${_selectedShop!.shopName}',
+                              style: const TextStyle(fontSize: 12, color: AppColors.primaryOrange, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 20),
+
+                    const Text('Select Payment Type:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.amberWarning)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: ['CASH', 'CREDIT', 'CHEQUE', 'ONLINE'].map((type) {
+                        final isSelected = paymentType == type;
+                        return Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              setModalState(() {
+                                paymentType = type;
+                                if (type == 'CREDIT') {
+                                  paidAmountController.text = '0.00';
+                                } else {
+                                  paidAmountController.text = totalAmount.toStringAsFixed(2);
+                                }
+                              });
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 2),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: isSelected ? AppColors.primaryOrange : (isDark ? AppColors.darkInput : AppColors.lightInput),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: isSelected ? AppColors.primaryOrange : (isDark ? AppColors.darkBorder : AppColors.lightBorder)),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  type,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: isSelected ? Colors.white : (isDark ? AppColors.darkTextMain : AppColors.lightTextMain),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.darkInput : AppColors.lightInput,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Subtotal:', style: TextStyle(fontSize: 12)),
+                              Text('LKR ${subtotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Total Payable:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                              Text(
+                                'LKR ${totalAmount.toStringAsFixed(2)}',
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primaryOrange),
+                              ),
+                            ],
+                          ),
+                          if (dueAmount > 0) ...[
+                            const SizedBox(height: 4),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Credit / Due Balance:', style: TextStyle(fontSize: 12, color: AppColors.roseDanger)),
+                                Text(
+                                  'LKR ${dueAmount.toStringAsFixed(2)}',
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.roseDanger),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Paid Amount (LKR):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 4),
+                              TextField(
+                                controller: paidAmountController,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                onChanged: (_) => setModalState(() {}),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Discount (LKR):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 4),
+                              TextField(
+                                controller: discountController,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                onChanged: (_) => setModalState(() {}),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    const Text('Sale Notes (Optional):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    TextField(
+                      controller: notesController,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        hintText: 'Add transaction note...',
+                        hintStyle: const TextStyle(fontSize: 11),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    Consumer<SalesProvider>(
+                      builder: (context, salesProvider, _) {
+                        return SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: salesProvider.isLoading
+                                ? null
+                                : () async {
+                                    final itemsPayload = _cartItems.map((c) {
+                                      return {
+                                        'item_id': c['id'] ?? 1,
+                                        'quantity': c['qty'] as int,
+                                        'unit_price': c['unitPrice'] as double,
+                                        'discount': 0.0,
+                                      };
+                                    }).toList();
+
+                                    try {
+                                      final result = await salesProvider.createSale(
+                                        shopId: _selectedShop!.id,
+                                        paymentType: paymentType,
+                                        discount: discount,
+                                        tax: tax,
+                                        paidAmount: paidAmount,
+                                        notes: notesController.text,
+                                        items: itemsPayload,
+                                      );
+
+                                      if (result != null) {
+                                        if (ctx.mounted) Navigator.pop(ctx);
+                                        final saleCode = result['sale_code'] ?? 'SALE-COMPLETED';
+                                        if (context.mounted) {
+                                          _showSaleSuccessDialog(saleCode, totalAmount, paidAmount, paymentType);
+                                          _clearCart();
+                                        }
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('Failed to record sale: $e'),
+                                            backgroundColor: AppColors.roseDanger,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryOrange,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: salesProvider.isLoading
+                                ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                                : Text(
+                                    'Confirm & Record Sale (LKR ${totalAmount.toStringAsFixed(2)})',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                  ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showSaleSuccessDialog(String saleCode, double total, double paid, String paymentType) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle, color: AppColors.emeraldSuccess, size: 28),
+            SizedBox(width: 8),
+            Text('Sale Recorded!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Transaction Code: $saleCode', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryOrange)),
+            const SizedBox(height: 8),
+            Text('Shop: ${_selectedShop?.shopName ?? "N/A"}'),
+            Text('Payment Method: $paymentType'),
+            Text('Total Amount: LKR ${total.toStringAsFixed(2)}'),
+            Text('Paid Amount: LKR ${paid.toStringAsFixed(2)}'),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.emeraldSuccess),
+            child: const Text('Done', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -119,23 +649,70 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            _selectedOutlet != null ? '${_selectedOutlet!.shopName} (SH-${_selectedOutlet!.id})' : 'Shanika Communication (SH-1008)',
-                            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                    child: Consumer<ShopProvider>(
+                      builder: (context, shopProvider, _) {
+                        final shops = shopProvider.listShops;
+
+                        if (_selectedShop == null && shops.isNotEmpty) {
+                          _selectedShop = shops.first;
+                        } else if (_selectedShop != null && shops.isNotEmpty) {
+                          final matchIndex = shops.indexWhere((s) => s.id == _selectedShop!.id || s.shopName == _selectedShop!.shopName);
+                          if (matchIndex != -1) {
+                            _selectedShop = shops[matchIndex];
+                          }
+                        }
+
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
                           ),
-                          const Icon(Icons.arrow_drop_down, color: AppColors.primaryOrange),
-                        ],
-                      ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<ShopModel>(
+                              value: (shops.isNotEmpty && _selectedShop != null && shops.contains(_selectedShop))
+                                  ? _selectedShop
+                                  : null,
+                              hint: Text(
+                                _selectedShop != null
+                                    ? '${_selectedShop!.shopName} (${_selectedShop!.shopCode.isNotEmpty ? _selectedShop!.shopCode : "SH-${_selectedShop!.id}"})'
+                                    : (shopProvider.isLoading ? 'Loading shops...' : 'Select Shop'),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13,
+                                  color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              isExpanded: true,
+                              icon: const Icon(Icons.arrow_drop_down, color: AppColors.primaryOrange),
+                              dropdownColor: isDark ? AppColors.darkCard : AppColors.lightCard,
+                              items: shops.map((ShopModel shop) {
+                                return DropdownMenuItem<ShopModel>(
+                                  value: shop,
+                                  child: Text(
+                                    '${shop.shopName} (${shop.shopCode.isNotEmpty ? shop.shopCode : "SH-${shop.id}"})',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (ShopModel? newShop) {
+                                if (newShop != null) {
+                                  setState(() {
+                                    _selectedShop = newShop;
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -160,7 +737,7 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
               // Product Catalog Header
               const Text(
                 'PRODUCT CATALOG (TAP ITEM TO SET QUANTITY):',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.cyanAccent, letterSpacing: 0.5),
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.amberWarning, letterSpacing: 0.5),
               ),
               const SizedBox(height: 8),
               // Search Bar
@@ -247,7 +824,7 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                                     ),
                                     child: InkWell(
                                       borderRadius: BorderRadius.circular(10),
-                                      onTap: () => _addToCart(catItem.itemCode, catItem.itemName, catItem.unitPrice, catItem.unit),
+                                      onTap: () => _openQuantityDialog(catItem),
                                       child: Padding(
                                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                                         child: Row(
@@ -271,12 +848,12 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                                                       Container(
                                                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                         decoration: BoxDecoration(
-                                                          color: AppColors.cyanAccent.withValues(alpha: 0.12),
+                                                          color: AppColors.amberWarning.withValues(alpha: 0.12),
                                                           borderRadius: BorderRadius.circular(4),
                                                         ),
                                                         child: Text(
                                                           catItem.itemCode,
-                                                          style: const TextStyle(fontSize: 10, color: AppColors.cyanAccent, fontWeight: FontWeight.bold),
+                                                          style: const TextStyle(fontSize: 10, color: AppColors.amberWarning),
                                                         ),
                                                       ),
                                                       const SizedBox(width: 8),
@@ -389,23 +966,41 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        cartItem['name'] as String,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                          color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
+                                  child: InkWell(
+                                    onTap: () {
+                                      final itemCode = (cartItem['code'] ?? '') as String;
+                                      final itemName = (cartItem['itemName'] ?? cartItem['name'] ?? '') as String;
+                                      final unitPrice = (cartItem['unitPrice'] as double);
+                                      final unit = (cartItem['unit'] ?? 'unit') as String;
+
+                                      _openQuantityDialog(ItemModel(
+                                        id: 0,
+                                        itemCode: itemCode.isNotEmpty ? itemCode : 'ITEM',
+                                        itemName: itemName,
+                                        category: 'General',
+                                        unitPrice: unitPrice,
+                                        unit: unit,
+                                        stock: 999,
+                                      ));
+                                    },
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          cartItem['name'] as String,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                            color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        'LKR ${(cartItem['unitPrice'] as double).toStringAsFixed(2)} × ${cartItem['qty']} = LKR ${lineTotal.toStringAsFixed(2)}',
-                                        style: const TextStyle(fontSize: 11, color: AppColors.cyanAccent, fontWeight: FontWeight.w500),
-                                      ),
-                                    ],
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'LKR ${(cartItem['unitPrice'] as double).toStringAsFixed(2)} × ${cartItem['qty']} = LKR ${lineTotal.toStringAsFixed(2)}',
+                                          style: const TextStyle(fontSize: 11, color: AppColors.amberWarning, fontWeight: FontWeight.w500),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                                 Row(
@@ -483,7 +1078,7 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                         Text(
                           'LKR ${_totalBillPayable.toStringAsFixed(2)}',
                           style: const TextStyle(
-                            fontSize: 22,
+                            fontSize: 16,
                             fontWeight: FontWeight.w900,
                             color: AppColors.primaryOrange,
                           ),
@@ -491,14 +1086,7 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                       ],
                     ),
                     ElevatedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Proceeding to Multi-Payment...'),
-                            backgroundColor: AppColors.emeraldSuccess,
-                          ),
-                        );
-                      },
+                      onPressed: _openPaymentBottomSheet,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primaryOrange,
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),

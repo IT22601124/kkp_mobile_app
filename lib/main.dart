@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:kkp_rep_mobile_app/provider/auth_provider.dart';
 import 'package:kkp_rep_mobile_app/provider/shop_provider.dart';
 import 'package:kkp_rep_mobile_app/provider/item_provider.dart';
+import 'package:kkp_rep_mobile_app/provider/sales_provider.dart';
 import 'package:kkp_rep_mobile_app/widgets/main_navigation_shell/main_navigation_shell.dart';
 import 'theme/app_theme.dart';
 
@@ -16,6 +17,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ShopProvider()),
         ChangeNotifierProvider(create: (_) => ItemProvider()),
+        ChangeNotifierProvider(create: (_) => SalesProvider()),
       ],
       child: const DsrRepMobileApp(),
     ),

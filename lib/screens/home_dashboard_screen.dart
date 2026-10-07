@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/dsr_models.dart';
+import 'package:kkp_rep_mobile_app/models/dsr_rep_profile.dart';
 import '../theme/app_theme.dart';
 import '../widgets/register_shop_bottom_sheet.dart';
 import '../widgets/request_stock_screen.dart';

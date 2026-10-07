@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import '../provider/auth_provider.dart';
 import '../provider/shop_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/register_shop_bottom_sheet.dart';
@@ -19,13 +20,17 @@ class _AllShopsScreenState extends State<AllShopsScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final shopProvider = Provider.of<ShopProvider>(context, listen: false);
-      shopProvider.getShopsByRoute();
+      int? routeId = authProvider.user?.repProfile?.assignedRouteId;
+      shopProvider.getShopsByRoute(routeId: routeId);
     });
   }
 
   Future<void> _fetchShops() async {
-    await Provider.of<ShopProvider>(context, listen: false).getShopsByRoute();
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    int? routeId = authProvider.user?.repProfile?.assignedRouteId;
+    await Provider.of<ShopProvider>(context, listen: false).getShopsByRoute(routeId: routeId);
   }
 
   Future<void> _deleteShop(int id, String name) async {
@@ -100,10 +105,10 @@ class _AllShopsScreenState extends State<AllShopsScreen> {
                       RegisterShopBottomSheet.show(context);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryOrange,
+                      backgroundColor: AppColors.amberWarning,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                     child: const Text('Create', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                   ),
@@ -150,8 +155,7 @@ class _AllShopsScreenState extends State<AllShopsScreen> {
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
                                     color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,34 +200,10 @@ class _AllShopsScreenState extends State<AllShopsScreen> {
                                       ),
                                       const SizedBox(height: 6),
                                       Text(
-                                        'Owner: ${shop.ownerName} • Phone: ${shop.phone}',
+                                        'Owner: ${shop.ownerName} • Phone: ${shop.phone}. Address: ${shop.address}',
                                         style: TextStyle(fontSize: 12, color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub),
                                       ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Address: ${shop.address}',
-                                        style: TextStyle(fontSize: 12, color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            'Route ID: ${shop.routeId} • Status: ${shop.status}',
-                                            style: const TextStyle(fontSize: 11, color: AppColors.cyanAccent, fontWeight: FontWeight.w600),
-                                          ),
-                                          if (shop.currentCreditBalance > 0)
-                                            Text(
-                                              'Due: LKR ${shop.currentCreditBalance.toStringAsFixed(2)}',
-                                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.roseDanger),
-                                            )
-                                          else
-                                            const Text(
-                                              'Credit Limit: LKR 100,000',
-                                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.emeraldSuccess),
-                                            ),
-                                        ],
-                                      ),
+
                                     ],
                                   ),
                                 );
