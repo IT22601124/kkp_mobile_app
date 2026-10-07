@@ -35,14 +35,14 @@ class ShopsHubScreen extends StatelessWidget {
                 height: 40,
                 decoration: BoxDecoration(
                   color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
                 ),
                 child: TabBar(
                   indicatorSize: TabBarIndicatorSize.tab,
                   indicator: BoxDecoration(
-                    color: AppColors.primaryOrange,
-                    borderRadius: BorderRadius.circular(10),
+                    color: AppColors.amberWarning,
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   labelColor: Colors.white,
                   unselectedLabelColor: isDark ? AppColors.darkTextSub : AppColors.lightTextSub,

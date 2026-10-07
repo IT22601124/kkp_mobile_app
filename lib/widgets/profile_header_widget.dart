@@ -43,7 +43,7 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: Consumer<AuthProvider>(
         builder: (context, authProvider, _) {
           final user = authProvider.user;
@@ -68,37 +68,6 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
                 },
                 child: Row(
                   children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryOrange,
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primaryOrange.withOpacity(0.4),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                              )
-                            : Text(
-                                initial,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                      ),
-                    ),
                     const SizedBox(width: 12),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,23 +81,22 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
                             : Text(
                                 userName,
                                 style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
                                   color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
                                 ),
                               ),
                         const SizedBox(height: 2),
                         Row(
                           children: [
-                            const Icon(Icons.location_on, size: 14, color: AppColors.cyanAccent),
+                            Icon(Icons.location_on, size: 14,  color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain),
                             const SizedBox(width: 4),
                             _isLoading
                                 ? const SizedBox.shrink()
                                 : Text(
                                     userSubtext,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.cyanAccent,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -143,22 +111,15 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
                 children: [
                   Stack(
                     children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.notifications_outlined, size: 20),
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('2 Pending notifications')),
-                            );
-                          },
-                          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-                          padding: EdgeInsets.zero,
-                        ),
+                      IconButton(
+                        icon: const Icon(Icons.notifications_outlined, size: 28),
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('2 Pending notifications')),
+                          );
+                        },
+                        constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                        padding: EdgeInsets.zero,
                       ),
                       Positioned(
                         right: 8,
@@ -180,18 +141,48 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
                       ),
                     ],
                   ),
+                  const SizedBox(width: 2),
+                  IconButton(
+                    icon: Icon(widget.isDarkMode ? Icons.wb_sunny_outlined : Icons.nightlight_round, size: 28),
+                    onPressed: widget.onToggleTheme,
+                    constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                    padding: EdgeInsets.zero,
+                  ),
                   const SizedBox(width: 8),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                    ),
-                    child: IconButton(
-                      icon: Icon(widget.isDarkMode ? Icons.wb_sunny_outlined : Icons.nightlight_round, size: 20),
-                      onPressed: widget.onToggleTheme,
-                      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-                      padding: EdgeInsets.zero,
+                  GestureDetector(
+                    onTap: (){
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => UserProfileScreen(
+                            isDarkMode: widget.isDarkMode,
+                            onToggleTheme: widget.onToggleTheme,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryOrange,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: _isLoading
+                            ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                            : Text(
+                          initial,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],

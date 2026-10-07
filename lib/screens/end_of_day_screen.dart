@@ -20,18 +20,10 @@ class EndOfDayScreen extends StatelessWidget {
             children: [
               // DSR Daily Settlement Sheet Banner
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.primaryOrange.withOpacity(0.5), width: 1.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primaryOrange.withOpacity(0.12),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -44,19 +36,17 @@ class EndOfDayScreen extends StatelessWidget {
                           'DSR DAILY SETTLEMENT SHEET',
                           style: TextStyle(
                             fontSize: 11,
-                            fontWeight: FontWeight.bold,
                             color: AppColors.darkTextSub,
                             letterSpacing: 1.0,
                           ),
                         ),
                         SizedBox(height: 6),
                         Text(
-                          'Dampola Route\n(22/08/2026)',
+                          'Dampola Route (22/08/2026)',
                           style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
                             color: AppColors.primaryOrange,
-                            height: 1.2,
                           ),
                         ),
                       ],
@@ -74,7 +64,6 @@ class EndOfDayScreen extends StatelessWidget {
                         style: TextStyle(
                           color: AppColors.emeraldSuccess,
                           fontSize: 11,
-                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
@@ -89,16 +78,16 @@ class EndOfDayScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppColors.cyanAccent.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.cyanAccent.withOpacity(0.3)),
+                  border: Border.all(color: AppColors.darkYellow.withOpacity(0.3)),
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.lock_outline, color: AppColors.cyanAccent, size: 18),
+                    Icon(Icons.lock_outline, color: AppColors.darkYellow, size: 18),
                     SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         'Auto-Balanced Real-Time from Field Sales. Read-Only Ledger Ready for Submission.',
-                        style: TextStyle(fontSize: 12, color: AppColors.cyanAccent, fontWeight: FontWeight.w600),
+                        style: TextStyle(fontSize: 12, color: AppColors.darkYellow, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],

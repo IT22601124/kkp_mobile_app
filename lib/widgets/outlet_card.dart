@@ -104,8 +104,8 @@ class OutletCard extends StatelessWidget {
                   icon: const Icon(Icons.pin_drop_outlined, size: 16),
                   label: const Text('Check In'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primaryOrange,
-                    side: const BorderSide(color: AppColors.primaryOrange),
+                    foregroundColor: AppColors.amberWarning,
+                    side: const BorderSide(color: AppColors.amberWarning),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -120,7 +120,7 @@ class OutletCard extends StatelessWidget {
                   icon: const Icon(Icons.point_of_sale, size: 16),
                   label: const Text('Issue Invoice'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryOrange,
+                    backgroundColor: AppColors.amberWarning,
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),

@@ -9,6 +9,10 @@ class AppColors {
   static const Color purpleAccent = Color(0xFFA855F7);
   static const Color roseDanger = Color(0xFFF43F5E);
   static const Color amberWarning = Color(0xFFF59E0B);
+  static const Color yellowLight = Color(0xFFF5D60B);
+  static const Color darkBlack = Color(0xFF000000);
+
+
 
   // Dark Theme Colors
   static const Color darkBg = Color(0xFF0F172A);
@@ -17,14 +21,16 @@ class AppColors {
   static const Color darkTextMain = Color(0xFFF8FAFC);
   static const Color darkTextSub = Color(0xFF94A3B8);
   static const Color darkBorder = Color(0x1AFFFFFF);
+  static const Color darkYellow= Color(0xFFF1BE13);
 
   // Light Theme Colors
   static const Color lightBg = Color(0xFFF8FAFC);
-  static const Color lightCard = Color(0xFFFFFFFF);
+  static const Color lightCard = Color(0xFFEDEBEB);
   static const Color lightInput = Color(0xFFE2E8F0);
   static const Color lightTextMain = Color(0xFF0F172A);
   static const Color lightTextSub = Color(0xFF64748B);
   static const Color lightBorder = Color(0xFFCBD5E1);
+  static const Color lightYellow= Color(0xFFF59E0B);
 }
 
 class AppTheme {

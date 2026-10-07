@@ -60,15 +60,7 @@ class _StockRequisitionScreenState extends State<StockRequisitionScreen> with Si
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
                         color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.cyanAccent.withOpacity(0.4)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
-                            blurRadius: 12,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -80,14 +72,14 @@ class _StockRequisitionScreenState extends State<StockRequisitionScreen> with Si
                                 'Stock & Requisitions Hub',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.cyanAccent,
+                                  color: AppColors.darkYellow,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                               SizedBox(height: 4),
                               Text(
                                 'Manage Handheld Bag & Hub Orders',
-                                style: TextStyle(fontSize: 11, color: AppColors.darkTextSub),
+                                style: TextStyle(fontSize: 8, color: AppColors.darkTextSub),
                               ),
                             ],
                           ),
@@ -101,9 +93,12 @@ class _StockRequisitionScreenState extends State<StockRequisitionScreen> with Si
                               ).then((_) => _loadStockData());
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.cyanAccent,
+                              backgroundColor: AppColors.amberWarning,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
                             ),
                             child: const Text('+ Request Stock', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                           ),
@@ -114,15 +109,13 @@ class _StockRequisitionScreenState extends State<StockRequisitionScreen> with Si
                     // Tab Bar
                     Container(
                       decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                        borderRadius: BorderRadius.circular(0),
                       ),
                       child: TabBar(
                         controller: _tabController,
-                        labelColor: AppColors.cyanAccent,
+                        labelColor: AppColors.darkYellow,
                         unselectedLabelColor: isDark ? AppColors.darkTextSub : AppColors.lightTextSub,
-                        indicatorColor: AppColors.cyanAccent,
+                        indicatorColor: AppColors.darkYellow,
                         tabs: const [
                           Tab(text: 'Handheld Stock Bag'),
                           Tab(text: 'Requisition History'),
@@ -176,7 +169,7 @@ class _StockRequisitionScreenState extends State<StockRequisitionScreen> with Si
         return RefreshIndicator(
           onRefresh: _loadStockData,
           child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             itemCount: stocks.length,
             separatorBuilder: (context, index) => Divider(height: 1, color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
             itemBuilder: (context, index) {
@@ -186,8 +179,7 @@ class _StockRequisitionScreenState extends State<StockRequisitionScreen> with Si
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                  borderRadius: BorderRadius.circular(2),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -200,7 +192,6 @@ class _StockRequisitionScreenState extends State<StockRequisitionScreen> with Si
                             stock.itemName,
                             style: TextStyle(
                               fontSize: 14,
-                              fontWeight: FontWeight.bold,
                               color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
                             ),
                           ),
@@ -218,9 +209,9 @@ class _StockRequisitionScreenState extends State<StockRequisitionScreen> with Si
                         Text(
                           '${stock.quantity} Units',
                           style: const TextStyle(
-                            fontSize: 15,
+                            fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.cyanAccent,
+                            color: AppColors.darkYellow,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -229,7 +220,7 @@ class _StockRequisitionScreenState extends State<StockRequisitionScreen> with Si
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.emeraldSuccess,
+                            color: AppColors.darkTextMain,
                           ),
                         ),
                       ],
@@ -252,7 +243,7 @@ class _StockRequisitionScreenState extends State<StockRequisitionScreen> with Si
         if (requests.isEmpty) {
           return Center(
             child: Padding(
-              padding: const EdgeInsets.all(32),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -291,8 +282,8 @@ class _StockRequisitionScreenState extends State<StockRequisitionScreen> with Si
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                  borderRadius: BorderRadius.circular(0),
+
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -342,7 +333,7 @@ class _StockRequisitionScreenState extends State<StockRequisitionScreen> with Si
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text('• $itemName', style: TextStyle(fontSize: 12, color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain)),
-                            Text('$qty Units', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.cyanAccent)),
+                            Text('$qty Units', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.darkYellow)),
                           ],
                         ),
                       );

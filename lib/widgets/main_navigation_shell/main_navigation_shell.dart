@@ -39,16 +39,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     activeRoute: 'Dampola Route (R-01)',
   );
 
-  final List<String> _titles = [
-    'DSR Dashboard',
-    'Handheld Stock Bag',
-    'Shops & Credits',
-    'End of Day Sheet',
-    'Reports & Settings',
-    'Route Outlets',
-    'Issue Invoice',
-  ];
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -136,7 +126,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             _buildDrawerTile(0, 'Dashboard', Icons.dashboard),
             _buildDrawerTile(5, 'Route Outlets', Icons.storefront),
             _buildDrawerTile(1, 'Stock Requisition', Icons.inventory_2_outlined),
-            _buildDrawerTile(6, 'Issue Invoice', Icons.receipt_long),
             _buildDrawerTile(2, 'Shops & Credits', Icons.storefront_outlined),
             _buildDrawerTile(3, 'End of Day Trip', Icons.shield_outlined),
             _buildDrawerTile(4, 'Settings & Profile', Icons.settings_outlined),
@@ -166,26 +155,115 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => InvoiceCreationScreen(initialOutlet: _selectedInvoiceOutlet),
-              ),
-            );
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => InvoiceCreationScreen(initialOutlet: _selectedInvoiceOutlet),
+            ),
+          );
         },
         backgroundColor: AppColors.primaryOrange,
         child: const Icon(Icons.shopping_cart, color: Colors.white),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex > 4 ? 0 : _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_bag_outlined), activeIcon: Icon(Icons.shopping_bag), label: 'Sales'),
-          BottomNavigationBarItem(icon: Icon(Icons.inventory_2_outlined), activeIcon: Icon(Icons.inventory_2), label: 'Stock'),
-          BottomNavigationBarItem(icon: Icon(Icons.storefront_outlined), activeIcon: Icon(Icons.storefront), label: 'Shops'),
-          BottomNavigationBarItem(icon: Icon(Icons.description_outlined), activeIcon: Icon(Icons.description), label: 'Sheet'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined), activeIcon: Icon(Icons.bar_chart), label: 'Reports'),
-        ],
+      bottomNavigationBar: _buildFloatingPillNavBar(isDark),
+    );
+  }
+
+  Widget _buildFloatingPillNavBar(bool isDark) {
+    final navItems = [
+      {'label': 'Home', 'icon': Icons.home_rounded, 'index': 0},
+      {'label': 'Stock', 'icon': Icons.view_in_ar_rounded, 'index': 1},
+      {'label': 'Shops', 'icon': Icons.storefront_outlined, 'index': 2},
+      {'label': 'Sheet', 'icon': Icons.swap_vert_rounded, 'index': 3},
+      {'label': 'More', 'icon': Icons.more_horiz_rounded, 'index': 4},
+    ];
+
+    return SafeArea(
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        height: 64,
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkCard : Colors.white,
+          borderRadius: BorderRadius.circular(35),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.35 : 0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+            if (isDark)
+              BoxShadow(
+                color: AppColors.darkBg.withOpacity(0.08),
+                blurRadius: 12,
+                offset: const Offset(0, 2),
+              ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: navItems.map((item) {
+            final idx = item['index'] as int;
+            final isSelected = _currentIndex == idx;
+            final label = item['label'] as String;
+            final icon = item['icon'] as IconData;
+
+            return GestureDetector(
+              onTap: () => setState(() => _currentIndex = idx),
+              behavior: HitTestBehavior.opaque,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                padding: isSelected
+                    ? const EdgeInsets.symmetric(horizontal: 20, vertical: 12)
+                    : const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppColors.darkBg
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: AppColors.darkBg.withOpacity(0.4),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          )
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      icon,
+                      color: isSelected
+                          ? Colors.white
+                          : (isDark ? AppColors.darkTextSub : AppColors.lightTextSub),
+                      size: 20,
+                    ),
+                    if (isSelected) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        ),
       ),
     );
   }
@@ -193,11 +271,11 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   Widget _buildDrawerTile(int index, String title, IconData icon) {
     final isSelected = _currentIndex == index;
     return ListTile(
-      leading: Icon(icon, color: isSelected ? AppColors.primaryOrange : AppColors.darkTextSub),
+      leading: Icon(icon, color: isSelected ? AppColors.darkBg : AppColors.darkTextSub),
       title: Text(
         title,
         style: TextStyle(
-          color: isSelected ? AppColors.primaryOrange : null,
+          color: isSelected ? AppColors.darkBg : null,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),
