@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:kkp_rep_mobile_app/dio/dio_client.dart';
 import 'package:kkp_rep_mobile_app/resources/api_routes.dart';
 
@@ -19,6 +19,7 @@ class SalesProvider extends ChangeNotifier {
     required double paidAmount,
     String? notes,
     required List<Map<String, dynamic>> items,
+    List<Map<String, dynamic>>? payments,
   }) async {
     isLoading = true;
     notifyListeners();
@@ -35,6 +36,7 @@ class SalesProvider extends ChangeNotifier {
         'paid_amount': paidAmount,
         if (notes != null && notes.isNotEmpty) 'notes': notes,
         'items': items,
+        if (payments != null && payments.isNotEmpty) 'payments': payments,
       };
 
       debugPrint('Creating sale with payload: $payload');
@@ -59,6 +61,86 @@ class SalesProvider extends ChangeNotifier {
       return null;
     } catch (e) {
       debugPrint('Create sale error: $e');
+      rethrow;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getShopCreditSales(int shopId) async {
+    isLoading = true;
+    notifyListeners();
+    try {
+      final response = await _dioClient.get('${ApiRoutes.shopCreditSalesUrl}/$shopId/credit-sales');
+      if (response.statusCode == 200) {
+        final data = response.data;
+        List<dynamic> salesJson = [];
+        if (data is Map) {
+          final target = data.containsKey('data') ? data['data'] : data;
+          if (target is List) {
+            salesJson = target;
+          }
+        } else if (data is List) {
+          salesJson = data;
+        }
+
+        return salesJson.map((s) => Map<String, dynamic>.from(s)).toList();
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Get shop credit sales error: $e');
+      return [];
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<Map<String, dynamic>?> getDailySettlement() async {
+    isLoading = true;
+    notifyListeners();
+    try {
+      final response = await _dioClient.get(ApiRoutes.dailySettlementUrl);
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is Map) {
+          final target = data.containsKey('data') ? data['data'] : data;
+          if (target is Map) {
+            return Map<String, dynamic>.from(target);
+          }
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Get daily settlement error: $e');
+      return null;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<Map<String, dynamic>?> submitDailySettlement(Map<String, dynamic> payload) async {
+    isLoading = true;
+    notifyListeners();
+    try {
+      final response = await _dioClient.post(
+        ApiRoutes.dailySettlementUrl,
+        data: payload,
+      );
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = response.data;
+        if (data is Map) {
+          final target = data.containsKey('data') ? data['data'] : data;
+          if (target is Map) {
+            return Map<String, dynamic>.from(target);
+          }
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Submit daily settlement error: ');
       rethrow;
     } finally {
       isLoading = false;

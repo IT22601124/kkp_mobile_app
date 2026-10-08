@@ -1,5 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/dsr_models.dart';
+import '../models/shop_model.dart';
+import '../provider/shop_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/outlet_card.dart';
 
@@ -13,91 +16,47 @@ class RouteOutletsScreen extends StatefulWidget {
 }
 
 class _RouteOutletsScreenState extends State<RouteOutletsScreen> {
-  String _selectedRoute = 'Route R-04: Colombo North';
-  String _filter = 'ALL';
   String _searchQuery = '';
 
-  final List<String> _routes = [
-    'Route R-04: Colombo North',
-    'Route R-02: Kandy Expressway',
-    'Route R-07: Galle Coastal',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ShopProvider>().getTodayVisitedShops();
+    });
+  }
 
-  final List<Outlet> _outlets = [
-    Outlet(
-      id: 1,
-      shopName: 'New City Mobile Centre',
-      ownerName: 'M. F. Perera',
-      phone: '0773456789',
-      address: 'No 142, Main Street, Pettah, Colombo',
-      routeName: 'Route R-04: Colombo North',
-      category: 'A Grade Outlet',
+  Outlet _convertToOutlet(ShopModel shop) {
+    return Outlet(
+      id: shop.id,
+      shopName: shop.shopName,
+      ownerName: shop.ownerName,
+      phone: shop.phone,
+      address: shop.address,
+      routeName: 'Route #${shop.routeId}',
+      category: shop.status.isNotEmpty ? shop.status : 'Active Outlet',
       status: OutletStatus.visited,
-      outstandingBalance: 12500.0,
-    ),
-    Outlet(
-      id: 2,
-      shopName: 'Global Telecom & Electronics',
-      ownerName: 'K. S. De Silva',
-      phone: '0718901234',
-      address: 'No 88, Galle Road, Bambalapitiya',
-      routeName: 'Route R-04: Colombo North',
-      category: 'Super Outlet',
-      status: OutletStatus.invoiced,
-      outstandingBalance: 0.0,
-    ),
-    Outlet(
-      id: 3,
-      shopName: 'Apex Mobile & Accessories',
-      ownerName: 'N. R. Jayawardena',
-      phone: '0754321098',
-      address: 'No 45, Highlevel Road, Nugegoda',
-      routeName: 'Route R-04: Colombo North',
-      category: 'B Grade Outlet',
-      status: OutletStatus.pending,
-      outstandingBalance: 4500.0,
-    ),
-    Outlet(
-      id: 4,
-      shopName: 'Smart Connections Shop',
-      ownerName: 'S. T. Fernando',
-      phone: '0761122334',
-      address: 'No 12, Kandy Road, Kiribathgoda',
-      routeName: 'Route R-04: Colombo North',
-      category: 'A Grade Outlet',
-      status: OutletStatus.pending,
-      outstandingBalance: 0.0,
-    ),
-    Outlet(
-      id: 5,
-      shopName: 'Lanka Reload Centre',
-      ownerName: 'R. M. Bandara',
-      phone: '0729988776',
-      address: 'No 204, Negombo Road, Wattala',
-      routeName: 'Route R-04: Colombo North',
-      category: 'C Grade Outlet',
-      status: OutletStatus.skipped,
-      outstandingBalance: 1890.0,
-    ),
-  ];
+      outstandingBalance: shop.currentCreditBalance,
+    );
+  }
 
   void _showCheckInDialog(Outlet outlet) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Row(
+        title: const Row(
           children: [
-            const Icon(Icons.pin_drop, color: AppColors.primaryOrange),
-            const SizedBox(width: 10),
-            Expanded(child: Text('GPS Check-in', style: const TextStyle(fontSize: 16))),
+            Icon(Icons.pin_drop, color: AppColors.primaryOrange),
+            SizedBox(width: 10),
+            Expanded(child: Text('GPS Check-in', style: TextStyle(fontSize: 16))),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Confirm outlet arrival check-in for:'),
+            const Text('Confirm outlet arrival check-in for:'),
             const SizedBox(height: 6),
             Text(outlet.shopName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
             const SizedBox(height: 12),
@@ -111,7 +70,7 @@ class _RouteOutletsScreenState extends State<RouteOutletsScreen> {
                 children: [
                   Icon(Icons.check_circle, color: AppColors.emeraldSuccess, size: 18),
                   SizedBox(width: 8),
-                  Text('GPS Accuracy: ±3m Verified', style: TextStyle(fontSize: 12, color: AppColors.emeraldSuccess)),
+                  Text('GPS Accuracy: Verified', style: TextStyle(fontSize: 12, color: AppColors.emeraldSuccess)),
                 ],
               ),
             ),
@@ -146,53 +105,122 @@ class _RouteOutletsScreenState extends State<RouteOutletsScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final filteredOutlets = _outlets.where((o) {
-      final matchesSearch = o.shopName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          o.ownerName.toLowerCase().contains(_searchQuery.toLowerCase());
-      if (_filter == 'PENDING') return matchesSearch && o.status == OutletStatus.pending;
-      if (_filter == 'VISITED') return matchesSearch && (o.status == OutletStatus.visited || o.status == OutletStatus.invoiced);
-      return matchesSearch;
-    }).toList();
+    return Consumer<ShopProvider>(
+      builder: (context, shopProvider, _) {
+        final rawShops = shopProvider.todayVisitedShops;
+        final outlets = rawShops.map(_convertToOutlet).toList();
 
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        final filteredOutlets = outlets.where((o) {
+          return o.shopName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+              o.ownerName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+              o.phone.toLowerCase().contains(_searchQuery.toLowerCase());
+        }).toList();
 
-          // Search Field
-          TextField(
-            onChanged: (val) => setState(() => _searchQuery = val),
-            decoration: const InputDecoration(
-              isDense: true,
-              contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-              hintText: 'Search shop name or owner...',
-              hintStyle: TextStyle(fontSize: 12),
-              prefixIcon: Icon(Icons.search, color: AppColors.darkTextSub, size: 20),
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Outlets List
-          Expanded(
-            child: filteredOutlets.isEmpty
-                ? const Center(
-                    child: Text('No outlets found matching criteria.', style: TextStyle(color: AppColors.darkTextSub)),
-                  )
-                : ListView.builder(
-                    itemCount: filteredOutlets.length,
-                    itemBuilder: (ctx, idx) {
-                      final outlet = filteredOutlets[idx];
-                      return OutletCard(
-                        outlet: outlet,
-                        onCheckIn: () => _showCheckInDialog(outlet),
-                        onSell: () => widget.onSelectOutletForInvoice(outlet),
-                      );
-                    },
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header & Refresh Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Shops Visited Today (${filteredOutlets.length})',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
+                    ),
                   ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh, size: 20, color: AppColors.primaryOrange),
+                    onPressed: () => shopProvider.getTodayVisitedShops(),
+                    tooltip: 'Refresh Today Visited Shops',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              // Search Field
+              TextField(
+                onChanged: (val) => setState(() => _searchQuery = val),
+                decoration: const InputDecoration(
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  hintText: 'Search visited shop or owner...',
+                  hintStyle: TextStyle(fontSize: 12),
+                  prefixIcon: Icon(Icons.search, color: AppColors.darkTextSub, size: 20),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Outlets List or Empty State
+              Expanded(
+                child: shopProvider.isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(color: AppColors.primaryOrange),
+                      )
+                    : filteredOutlets.isEmpty
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.store_mall_directory_outlined,
+                                      size: 56, color: Colors.grey.shade400),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    _searchQuery.isNotEmpty
+                                        ? 'No visited shops matching "$_searchQuery"'
+                                        : 'No shops visited today yet',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'When a sale is recorded today for a shop, it will appear here under Today Shops.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  ElevatedButton.icon(
+                                    onPressed: () => shopProvider.getTodayVisitedShops(),
+                                    icon: const Icon(Icons.refresh, size: 16),
+                                    label: const Text('Refresh'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primaryOrange,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: filteredOutlets.length,
+                            itemBuilder: (ctx, idx) {
+                              final outlet = filteredOutlets[idx];
+                              return OutletCard(
+                                outlet: outlet,
+                                onCheckIn: () => _showCheckInDialog(outlet),
+                                onSell: () => widget.onSelectOutletForInvoice(outlet),
+                              );
+                            },
+                          ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

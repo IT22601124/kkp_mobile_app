@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kkp_rep_mobile_app/provider/sales_provider.dart';
 import '../models/dsr_models.dart';
@@ -129,7 +129,7 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Code: ${item.itemCode} • Stock: ${item.stock} ${item.unit}',
+                              'Code: ${item.itemCode} â€¢ Stock: ${item.stock} ${item.unit}',
                               style: const TextStyle(fontSize: 12, color: AppColors.amberWarning, fontWeight: FontWeight.w600),
                             ),
                           ],
@@ -330,6 +330,10 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
     final paidAmountController = TextEditingController(text: subtotal.toStringAsFixed(2));
     final notesController = TextEditingController();
 
+    List<Map<String, dynamic>> splitPayments = [
+      {'payment_type': 'CASH', 'amount_controller': TextEditingController(text: subtotal.toStringAsFixed(2)), 'reference_number': ''},
+    ];
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -343,7 +347,29 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
             final double discount = double.tryParse(discountController.text) ?? 0.0;
             final double tax = double.tryParse(taxController.text) ?? 0.0;
             final double totalAmount = (subtotal - discount + tax).clamp(0.0, double.infinity);
-            final double paidAmount = double.tryParse(paidAmountController.text) ?? 0.0;
+
+            double paidAmount = 0.0;
+            List<Map<String, dynamic>>? paymentsPayload;
+
+            if (paymentType == 'SPLIT') {
+              paidAmount = 0.0;
+              paymentsPayload = [];
+              for (var sp in splitPayments) {
+                double amt = double.tryParse(sp['amount_controller'].text) ?? 0.0;
+                String pType = sp['payment_type'];
+                if (pType != 'CREDIT') {
+                  paidAmount += amt;
+                }
+                paymentsPayload.add({
+                  'payment_type': pType,
+                  'amount': amt,
+                  if ((sp['reference_number'] as String).isNotEmpty) 'reference_number': sp['reference_number'],
+                });
+              }
+            } else {
+              paidAmount = double.tryParse(paidAmountController.text) ?? 0.0;
+            }
+
             final double dueAmount = (totalAmount - paidAmount).clamp(0.0, double.infinity);
 
             return Padding(
@@ -381,7 +407,7 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                     const Text('Select Payment Type:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.amberWarning)),
                     const SizedBox(height: 8),
                     Row(
-                      children: ['CASH', 'CREDIT', 'CHEQUE', 'ONLINE'].map((type) {
+                      children: ['CASH', 'CREDIT', 'CHEQUE', 'ONLINE', 'SPLIT'].map((type) {
                         final isSelected = paymentType == type;
                         return Expanded(
                           child: GestureDetector(
@@ -390,7 +416,7 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                                 paymentType = type;
                                 if (type == 'CREDIT') {
                                   paidAmountController.text = '0.00';
-                                } else {
+                                } else if (type != 'SPLIT') {
                                   paidAmountController.text = totalAmount.toStringAsFixed(2);
                                 }
                               });
@@ -407,7 +433,7 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                                 child: Text(
                                   type,
                                   style: TextStyle(
-                                    fontSize: 11,
+                                    fontSize: 10,
                                     fontWeight: FontWeight.bold,
                                     color: isSelected ? Colors.white : (isDark ? AppColors.darkTextMain : AppColors.lightTextMain),
                                   ),
@@ -465,50 +491,288 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                     ),
                     const SizedBox(height: 14),
 
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Paid Amount (LKR):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 4),
-                              TextField(
-                                controller: paidAmountController,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                decoration: InputDecoration(
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    if (paymentType == 'SPLIT') ...[
+                      () {
+                        double totalSplitAllocated = 0.0;
+                        for (var sp in splitPayments) {
+                          double amt = double.tryParse(sp['amount_controller'].text) ?? 0.0;
+                          if (sp['payment_type'] != 'CREDIT') {
+                            totalSplitAllocated += amt;
+                          }
+                        }
+                        final double remainingToAllocate = totalAmount - totalSplitAllocated;
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Allocation Status Banner
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              margin: const EdgeInsets.only(bottom: 12),
+                              decoration: BoxDecoration(
+                                color: (remainingToAllocate.abs() < 0.01)
+                                    ? AppColors.emeraldSuccess.withOpacity(0.12)
+                                    : (remainingToAllocate > 0
+                                        ? AppColors.amberWarning.withOpacity(0.15)
+                                        : AppColors.roseDanger.withOpacity(0.15)),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: (remainingToAllocate.abs() < 0.01)
+                                      ? AppColors.emeraldSuccess
+                                      : (remainingToAllocate > 0 ? AppColors.amberWarning : AppColors.roseDanger),
                                 ),
-                                onChanged: (_) => setModalState(() {}),
                               ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Discount (LKR):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 4),
-                              TextField(
-                                controller: discountController,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                decoration: InputDecoration(
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    (remainingToAllocate.abs() < 0.01)
+                                        ? Icons.check_circle_outline
+                                        : (remainingToAllocate > 0 ? Icons.info_outline : Icons.error_outline),
+                                    size: 18,
+                                    color: (remainingToAllocate.abs() < 0.01)
+                                        ? AppColors.emeraldSuccess
+                                        : (remainingToAllocate > 0 ? AppColors.amberWarning : AppColors.roseDanger),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      (remainingToAllocate.abs() < 0.01)
+                                          ? '100% Allocated (LKR ${totalAmount.toStringAsFixed(2)})'
+                                          : (remainingToAllocate > 0
+                                              ? 'Remaining Unallocated: LKR ${remainingToAllocate.toStringAsFixed(2)}'
+                                              : 'Overallocated by LKR ${(-remainingToAllocate).toStringAsFixed(2)}'),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: (remainingToAllocate.abs() < 0.01)
+                                            ? AppColors.emeraldSuccess
+                                            : (remainingToAllocate > 0 ? AppColors.amberWarning : AppColors.roseDanger),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // Split Payment Rows
+                            ...splitPayments.asMap().entries.map((entry) {
+                              int idx = entry.key;
+                              var sp = entry.value;
+                              final String currentPType = sp['payment_type'] ?? 'CASH';
+
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 10),
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
                                 ),
-                                onChanged: (_) => setModalState(() {}),
-                              ),
-                            ],
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: isDark ? AppColors.darkInput : AppColors.lightInput,
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                                          ),
+                                          child: DropdownButtonHideUnderline(
+                                            child: DropdownButton<String>(
+                                              value: ['CASH', 'CHEQUE', 'ONLINE', 'CARD', 'CREDIT'].contains(currentPType)
+                                                  ? currentPType
+                                                  : 'CASH',
+                                              dropdownColor: isDark ? AppColors.darkCard : AppColors.lightCard,
+                                              isDense: true,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                                color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
+                                              ),
+                                              items: [
+                                                {'type': 'CASH', 'label': '💵 CASH'},
+                                                {'type': 'CHEQUE', 'label': '📄 CHEQUE'},
+                                                {'type': 'ONLINE', 'label': '📱 ONLINE'},
+                                                {'type': 'CARD', 'label': '💳 CARD'},
+                                                {'type': 'CREDIT', 'label': '📝 CREDIT'},
+                                              ].map((item) {
+                                                return DropdownMenuItem<String>(
+                                                  value: item['type'],
+                                                  child: Text(item['label']!),
+                                                );
+                                              }).toList(),
+                                              onChanged: (val) {
+                                                if (val != null) {
+                                                  setModalState(() {
+                                                    sp['payment_type'] = val;
+                                                  });
+                                                }
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: TextField(
+                                            controller: sp['amount_controller'],
+                                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                                            decoration: InputDecoration(
+                                              labelText: 'Amount (LKR)',
+                                              isDense: true,
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                            ),
+                                            onChanged: (_) => setModalState(() {}),
+                                          ),
+                                        ),
+                                        if (splitPayments.length > 1) ...[
+                                          const SizedBox(width: 4),
+                                          IconButton(
+                                            icon: const Icon(Icons.delete_outline, color: AppColors.roseDanger, size: 20),
+                                            onPressed: () => setModalState(() => splitPayments.removeAt(idx)),
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+
+                                    // Option to auto-fill remaining balance into this row
+                                    if (remainingToAllocate > 0.01) ...[
+                                      const SizedBox(height: 6),
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: InkWell(
+                                          onTap: () {
+                                            final double currentAmt = double.tryParse(sp['amount_controller'].text) ?? 0.0;
+                                            final double newAmt = currentAmt + remainingToAllocate;
+                                            setModalState(() {
+                                              sp['amount_controller'].text = newAmt.toStringAsFixed(2);
+                                            });
+                                          },
+                                          borderRadius: BorderRadius.circular(6),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primaryOrange.withOpacity(0.12),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              '+ Add remaining LKR ${remainingToAllocate.toStringAsFixed(2)} here',
+                                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primaryOrange),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+
+                                    // Reference input for CHEQUE, ONLINE, or CARD
+                                    if (['CHEQUE', 'ONLINE', 'CARD'].contains(currentPType)) ...[
+                                      const SizedBox(height: 8),
+                                      TextField(
+                                        style: const TextStyle(fontSize: 12),
+                                        decoration: InputDecoration(
+                                          labelText: currentPType == 'CHEQUE'
+                                              ? 'Cheque Number / Bank Name'
+                                              : (currentPType == 'ONLINE' ? 'Bank Transfer Ref No.' : 'Card Ref / Terminal ID'),
+                                          hintText: currentPType == 'CHEQUE' ? 'e.g. CHQ-884021' : 'e.g. TXN-994012',
+                                          isDense: true,
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                        ),
+                                        onChanged: (val) => sp['reference_number'] = val,
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              );
+                            }),
+
+                            // Add Payment Row Button
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '${splitPayments.length} payment mode(s)',
+                                  style: TextStyle(fontSize: 11, color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub),
+                                ),
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    final double defaultAmt = remainingToAllocate > 0 ? remainingToAllocate : 0.0;
+                                    setModalState(() {
+                                      splitPayments.add({
+                                        'payment_type': 'CHEQUE',
+                                        'amount_controller': TextEditingController(text: defaultAmt.toStringAsFixed(2)),
+                                        'reference_number': '',
+                                      });
+                                    });
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primaryOrange,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  icon: const Icon(Icons.add, size: 16),
+                                  label: const Text('Add Payment Mode', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                        );
+                      }(),
+                    ] else ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Paid Amount (LKR):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 4),
+                                TextField(
+                                  controller: paidAmountController,
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  decoration: InputDecoration(
+                                    isDense: true,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  onChanged: (_) => setModalState(() {}),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Discount (LKR):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 4),
+                                TextField(
+                                  controller: discountController,
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  decoration: InputDecoration(
+                                    isDense: true,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  onChanged: (_) => setModalState(() {}),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                    ],
 
                     const Text('Sale Notes (Optional):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
@@ -551,6 +815,7 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                                         paidAmount: paidAmount,
                                         notes: notesController.text,
                                         items: itemsPayload,
+                                        payments: paymentsPayload,
                                       );
 
                                       if (result != null) {
@@ -717,7 +982,12 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                   ),
                   const SizedBox(width: 16),
                   InkWell(
-                    onTap: () {},
+                    onTap: () {
+                      setState(() {
+                        _selectedShop = null;
+                      });
+                      Navigator.pop(context);
+                    },
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
                       padding: const EdgeInsets.all(8),
@@ -996,7 +1266,7 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
-                                          'LKR ${(cartItem['unitPrice'] as double).toStringAsFixed(2)} × ${cartItem['qty']} = LKR ${lineTotal.toStringAsFixed(2)}',
+                                          'LKR ${(cartItem['unitPrice'] as double).toStringAsFixed(2)} Ã— ${cartItem['qty']} = LKR ${lineTotal.toStringAsFixed(2)}',
                                           style: const TextStyle(fontSize: 11, color: AppColors.amberWarning, fontWeight: FontWeight.w500),
                                         ),
                                       ],
@@ -1093,7 +1363,7 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                       child: const Text(
-                        'Proceed to Multi-Payment →',
+                        'Proceed to Multi-Payment â†’',
                         style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                     ),
@@ -1107,3 +1377,4 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
     );
   }
 }
+

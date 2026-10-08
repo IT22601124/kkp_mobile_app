@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:kkp_rep_mobile_app/dio/dio_client.dart';
 import 'package:kkp_rep_mobile_app/models/route_model.dart';
 import 'package:kkp_rep_mobile_app/models/shop_model.dart';
@@ -8,6 +8,8 @@ class ShopProvider extends ChangeNotifier {
   bool isLoading = false;
   final DioClient _dioClient = DioClient();
   List<ShopModel> listShops = [];
+  List<ShopModel> todayVisitedShops = [];
+  List<ShopModel> creditShops = [];
   List<RouteModel> listRoutes = [];
 
   Future<ShopModel?> createShop({
@@ -66,6 +68,103 @@ class ShopProvider extends ChangeNotifier {
     }
   }
 
+  Future<List<ShopModel>> getTodayVisitedShops() async {
+    isLoading = true;
+    notifyListeners();
+    try {
+      final response = await _dioClient.get(ApiRoutes.todayVisitedShopsUrl);
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        List<dynamic> shopsJson = [];
+
+        if (data is Map) {
+          final target = data.containsKey('data') ? data['data'] : data;
+          if (target is List) {
+            shopsJson = target;
+          }
+        } else if (data is List) {
+          shopsJson = data;
+        }
+
+        todayVisitedShops = shopsJson
+            .map((json) => ShopModel.fromJson(Map<String, dynamic>.from(json)))
+            .toList();
+
+        debugPrint('Fetched ${todayVisitedShops.length} today visited shops');
+        notifyListeners();
+        return todayVisitedShops;
+      }
+      return todayVisitedShops;
+    } catch (e) {
+      debugPrint('Error fetching today visited shops: $e');
+      return todayVisitedShops;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<List<ShopModel>> getCreditShops() async {
+    isLoading = true;
+    notifyListeners();
+    try {
+      final response = await _dioClient.get(ApiRoutes.creditShopsUrl);
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        List<dynamic> shopsJson = [];
+
+        if (data is Map) {
+          final target = data.containsKey('data') ? data['data'] : data;
+          if (target is List) {
+            shopsJson = target;
+          }
+        } else if (data is List) {
+          shopsJson = data;
+        }
+
+        creditShops = shopsJson
+            .map((json) => ShopModel.fromJson(Map<String, dynamic>.from(json)))
+            .toList();
+
+        debugPrint('Fetched ${creditShops.length} credit shops');
+        notifyListeners();
+        return creditShops;
+      }
+      return creditShops;
+    } catch (e) {
+      debugPrint('Error fetching credit shops: $e');
+      return creditShops;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> settleCredit({required int shopId, required double amount}) async {
+    isLoading = true;
+    notifyListeners();
+    try {
+      final response = await _dioClient.post(
+        '${ApiRoutes.settleCreditUrl}/$shopId/settle-credit',
+        data: {'amount': amount},
+      );
+
+      if (response.statusCode == 200) {
+        await getCreditShops();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Settle credit error: $e');
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<List<ShopModel>> getShopsByRoute({int? routeId}) async {
     isLoading = true;
     notifyListeners();
@@ -93,7 +192,6 @@ class ShopProvider extends ChangeNotifier {
         } else if (data is List) {
           shopsJson = data;
         }
-
 
         listShops = shopsJson
             .map((json) => ShopModel.fromJson(Map<String, dynamic>.from(json)))
