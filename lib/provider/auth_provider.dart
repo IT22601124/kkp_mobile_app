@@ -4,6 +4,7 @@ import 'package:kkp_rep_mobile_app/models/user_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kkp_rep_mobile_app/dio/dio_client.dart';
 import 'package:kkp_rep_mobile_app/resources/api_routes.dart';
+import 'package:kkp_rep_mobile_app/services/notification_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   bool _isLoggedIn = false;
@@ -12,6 +13,15 @@ class AuthProvider extends ChangeNotifier {
   UserModel? get user => _user;
 
   bool get isLoggedIn => _isLoggedIn;
+
+  AuthProvider() {
+    // Automatically sync token with backend when FCM rotates/refreshes
+    NotificationService().onTokenRefreshCallback = (token) {
+      if (_isLoggedIn) {
+        updateFcmToken(token);
+      }
+    };
+  }
 
   Future<bool> checkSavedToken() async {
     try {
@@ -49,6 +59,14 @@ class AuthProvider extends ChangeNotifier {
 
             _isLoggedIn = true;
             notifyListeners();
+
+            // Refresh FCM device token on backend if already authenticated
+            NotificationService().getOrFetchFcmToken().then((currentFcm) {
+              if (currentFcm != null && currentFcm.isNotEmpty) {
+                updateFcmToken(currentFcm);
+              }
+            });
+
             return true;
           } else {
             await logout();
@@ -74,12 +92,27 @@ class AuthProvider extends ChangeNotifier {
 
   Future<bool> login(String phone, String password) async {
     try {
+      // Retrieve FCM device token if available
+      String? fcmToken;
+      try {
+        fcmToken = await NotificationService().getOrFetchFcmToken();
+        debugPrint('FCM Token for login: $fcmToken');
+      } catch (e) {
+        debugPrint('FCM Token fetch failed before login: $e');
+      }
+
+      final Map<String, dynamic> requestPayload = {
+        "phone": phone,
+        "password": password,
+      };
+
+      if (fcmToken != null && fcmToken.isNotEmpty) {
+        requestPayload["fcm_token"] = fcmToken;
+      }
+
       final response = await _dioClient.post(
         ApiRoutes.loginUrl,
-        data: {
-          "phone": phone,
-          "password": password,
-        },
+        data: requestPayload,
       );
 
       final data = response.data;
@@ -118,6 +151,16 @@ class AuthProvider extends ChangeNotifier {
 
         _isLoggedIn = true;
         notifyListeners();
+
+        // If FCM token wasn't ready at the exact moment of login request, attempt updating it now
+        if (fcmToken == null || fcmToken.isEmpty) {
+          NotificationService().getOrFetchFcmToken().then((lateToken) {
+            if (lateToken != null && lateToken.isNotEmpty) {
+              updateFcmToken(lateToken);
+            }
+          });
+        }
+
         return true;
       } else {
         throw Exception('Login failed with status: ${response.statusCode}');
@@ -134,6 +177,20 @@ class AuthProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Login error: $e');
       rethrow;
+    }
+  }
+
+  Future<void> updateFcmToken(String token) async {
+    try {
+      final response = await _dioClient.post(
+        ApiRoutes.updateFcmTokenUrl,
+        data: {
+          "fcm_token": token,
+        },
+      );
+      debugPrint('FCM token registered on backend: ${response.statusCode}');
+    } catch (e) {
+      debugPrint('Failed to update FCM token on backend: $e');
     }
   }
 

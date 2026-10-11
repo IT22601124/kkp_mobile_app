@@ -1,10 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kkp_rep_mobile_app/provider/sales_provider.dart';
 import '../models/dsr_models.dart';
 import '../models/item_model.dart';
 import '../models/shop_model.dart';
 import '../provider/auth_provider.dart';
+import '../provider/bank_account_provider.dart';
 import '../provider/item_provider.dart';
 import '../provider/shop_provider.dart';
 import '../theme/app_theme.dart';
@@ -61,6 +62,9 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
       if (itemProvider.listItems.isEmpty) {
         itemProvider.getItems();
       }
+
+      final bankAccountProvider = Provider.of<BankAccountProvider>(context, listen: false);
+      bankAccountProvider.getBankAccounts();
     });
   }
 
@@ -328,10 +332,12 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
     final discountController = TextEditingController(text: '0.00');
     final taxController = TextEditingController(text: '0.00');
     final paidAmountController = TextEditingController(text: subtotal.toStringAsFixed(2));
+    final bankRefController = TextEditingController();
     final notesController = TextEditingController();
+    int? selectedBankAccountId;
 
     List<Map<String, dynamic>> splitPayments = [
-      {'payment_type': 'CASH', 'amount_controller': TextEditingController(text: subtotal.toStringAsFixed(2)), 'reference_number': ''},
+      {'payment_type': 'CASH', 'amount_controller': TextEditingController(text: subtotal.toStringAsFixed(2)), 'reference_number': '', 'bank_account_id': null},
     ];
 
     showModalBottomSheet(
@@ -344,6 +350,11 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setModalState) {
+            final bankAccountProvider = Provider.of<BankAccountProvider>(context, listen: false);
+            if (selectedBankAccountId == null && bankAccountProvider.listBankAccounts.isNotEmpty) {
+              selectedBankAccountId = bankAccountProvider.selectedBankAccount?.id ?? bankAccountProvider.listBankAccounts.first.id;
+            }
+
             final double discount = double.tryParse(discountController.text) ?? 0.0;
             final double tax = double.tryParse(taxController.text) ?? 0.0;
             final double totalAmount = (subtotal - discount + tax).clamp(0.0, double.infinity);
@@ -364,6 +375,7 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                   'payment_type': pType,
                   'amount': amt,
                   if ((sp['reference_number'] as String).isNotEmpty) 'reference_number': sp['reference_number'],
+                  if (pType == 'ONLINE' && sp['bank_account_id'] != null) 'bank_account_id': sp['bank_account_id'],
                 });
               }
             } else {
@@ -407,7 +419,15 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                     const Text('Select Payment Type:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.amberWarning)),
                     const SizedBox(height: 8),
                     Row(
-                      children: ['CASH', 'CREDIT', 'CHEQUE', 'ONLINE', 'SPLIT'].map((type) {
+                      children: [
+                        {'type': 'CASH', 'label': 'CASH'},
+                        {'type': 'CREDIT', 'label': 'CREDIT'},
+                        {'type': 'CHEQUE', 'label': 'CHEQUE'},
+                        {'type': 'ONLINE', 'label': 'BANK TRF'},
+                        {'type': 'SPLIT', 'label': 'SPLIT'},
+                      ].map((opt) {
+                        final type = opt['type']!;
+                        final label = opt['label']!;
                         final isSelected = paymentType == type;
                         return Expanded(
                           child: GestureDetector(
@@ -431,9 +451,9 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                               ),
                               child: Center(
                                 child: Text(
-                                  type,
+                                  label,
                                   style: TextStyle(
-                                    fontSize: 10,
+                                    fontSize: 9.5,
                                     fontWeight: FontWeight.bold,
                                     color: isSelected ? Colors.white : (isDark ? AppColors.darkTextMain : AppColors.lightTextMain),
                                   ),
@@ -671,9 +691,45 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                                       ),
                                     ],
 
-                                    // Reference input for CHEQUE, ONLINE, or CARD
+                                    // Reference & Bank Account input for CHEQUE, ONLINE, or CARD
                                     if (['CHEQUE', 'ONLINE', 'CARD'].contains(currentPType)) ...[
                                       const SizedBox(height: 8),
+                                      if (currentPType == 'ONLINE') ...[
+                                        Consumer<BankAccountProvider>(
+                                          builder: (context, bankProvider, _) {
+                                            final accounts = bankProvider.listBankAccounts;
+                                            final currentBankId = sp['bank_account_id'] ?? selectedBankAccountId;
+                                            return DropdownButtonFormField<int>(
+                                              value: currentBankId,
+                                              isExpanded: true,
+                                              decoration: InputDecoration(
+                                                labelText: 'Select Agent Bank Account',
+                                                isDense: true,
+                                                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                              ),
+                                              items: accounts.map((acc) {
+                                                return DropdownMenuItem<int>(
+                                                  value: acc.id,
+                                                  child: Text(
+                                                    '${acc.bankName} (${acc.accountNumber})',
+                                                    style: const TextStyle(fontSize: 11),
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                );
+                                              }).toList(),
+                                              onChanged: (val) {
+                                                if (val != null) {
+                                                  setModalState(() {
+                                                    sp['bank_account_id'] = val;
+                                                  });
+                                                }
+                                              },
+                                            );
+                                          },
+                                        ),
+                                        const SizedBox(height: 8),
+                                      ],
                                       TextField(
                                         style: const TextStyle(fontSize: 12),
                                         decoration: InputDecoration(
@@ -709,6 +765,7 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                                         'payment_type': 'CHEQUE',
                                         'amount_controller': TextEditingController(text: defaultAmt.toStringAsFixed(2)),
                                         'reference_number': '',
+                                        'bank_account_id': null,
                                       });
                                     });
                                   },
@@ -728,6 +785,135 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                         );
                       }(),
                     ] else ...[
+                      // Dedicated Agent Bank Account selector card for Bank Transfer
+                      if (paymentType == 'ONLINE') ...[
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.darkInput : AppColors.lightInput,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.primaryOrange.withValues(alpha: 0.6), width: 1.2),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.account_balance, color: AppColors.primaryOrange, size: 18),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Select Agent Bank Account',
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryOrange),
+                                  ),
+                                  const Spacer(),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryOrange.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text('Required', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.primaryOrange)),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Consumer<BankAccountProvider>(
+                                builder: (context, bankProvider, _) {
+                                  final accounts = bankProvider.listBankAccounts;
+                                  return DropdownButtonFormField<int>(
+                                    value: selectedBankAccountId,
+                                    isExpanded: true,
+                                    decoration: InputDecoration(
+                                      labelText: 'Receiving Bank Account',
+                                      isDense: true,
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                    ),
+                                    items: accounts.map((acc) {
+                                      return DropdownMenuItem<int>(
+                                        value: acc.id,
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                '${acc.bankName} - ${acc.accountNumber}',
+                                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            if (acc.isDefault)
+                                              Container(
+                                                margin: const EdgeInsets.only(left: 4),
+                                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.emeraldSuccess.withValues(alpha: 0.2),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: const Text('DEFAULT', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: AppColors.emeraldSuccess)),
+                                              ),
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: (val) {
+                                      if (val != null) {
+                                        setModalState(() {
+                                          selectedBankAccountId = val;
+                                        });
+                                      }
+                                    },
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 8),
+                              // Account Detail Card
+                              () {
+                                final matched = bankAccountProvider.listBankAccounts.where((b) => b.id == selectedBankAccountId);
+                                if (matched.isNotEmpty) {
+                                  final b = matched.first;
+                                  return Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(8),
+                                    margin: const EdgeInsets.only(bottom: 8),
+                                    decoration: BoxDecoration(
+                                      color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Account Name: ${b.accountName}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                                        const SizedBox(height: 2),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text('Branch: ${b.branchName}', style: TextStyle(fontSize: 10, color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub)),
+                                            Text('A/C: ${b.accountNumber}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primaryOrange)),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              }(),
+                              TextField(
+                                controller: bankRefController,
+                                style: const TextStyle(fontSize: 12),
+                                decoration: InputDecoration(
+                                  labelText: 'Bank Transfer Ref / Slip Number',
+                                  hintText: 'e.g. TXN-998841 / Slip Ref',
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       Row(
                         children: [
                           Expanded(
@@ -797,6 +983,16 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                             onPressed: salesProvider.isLoading
                                 ? null
                                 : () async {
+                                    if (paymentType == 'ONLINE' && (selectedBankAccountId == null || selectedBankAccountId == 0)) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Please select an agent bank account for the bank transfer.'),
+                                          backgroundColor: AppColors.roseDanger,
+                                        ),
+                                      );
+                                      return;
+                                    }
+
                                     final itemsPayload = _cartItems.map((c) {
                                       return {
                                         'item_id': c['id'] ?? 1,
@@ -810,6 +1006,8 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                                       final result = await salesProvider.createSale(
                                         shopId: _selectedShop!.id,
                                         paymentType: paymentType,
+                                        bankAccountId: paymentType == 'ONLINE' ? selectedBankAccountId : null,
+                                        referenceNumber: paymentType == 'ONLINE' ? bankRefController.text : null,
                                         discount: discount,
                                         tax: tax,
                                         paidAmount: paidAmount,
@@ -822,7 +1020,21 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                                         if (ctx.mounted) Navigator.pop(ctx);
                                         final saleCode = result['sale_code'] ?? 'SALE-COMPLETED';
                                         if (context.mounted) {
-                                          _showSaleSuccessDialog(saleCode, totalAmount, paidAmount, paymentType);
+                                          String? bankInfo;
+                                          if (paymentType == 'ONLINE' && selectedBankAccountId != null) {
+                                            final matched = bankAccountProvider.listBankAccounts.where((b) => b.id == selectedBankAccountId);
+                                            if (matched.isNotEmpty) {
+                                              bankInfo = '${matched.first.bankName} (${matched.first.accountNumber})';
+                                            }
+                                          }
+                                          _showSaleSuccessDialog(
+                                            saleCode,
+                                            totalAmount,
+                                            paidAmount,
+                                            paymentType == 'ONLINE' ? 'BANK TRANSFER' : paymentType,
+                                            bankInfo: bankInfo,
+                                            refNo: paymentType == 'ONLINE' ? bankRefController.text : null,
+                                          );
                                           _clearCart();
                                         }
                                       }
@@ -862,7 +1074,7 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
     );
   }
 
-  void _showSaleSuccessDialog(String saleCode, double total, double paid, String paymentType) {
+  void _showSaleSuccessDialog(String saleCode, double total, double paid, String paymentType, {String? bankInfo, String? refNo}) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -883,6 +1095,26 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
             const SizedBox(height: 8),
             Text('Shop: ${_selectedShop?.shopName ?? "N/A"}'),
             Text('Payment Method: $paymentType'),
+            if (bankInfo != null && bankInfo.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Credited Bank: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  Expanded(
+                    child: Text(
+                      bankInfo,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primaryOrange),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            if (refNo != null && refNo.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text('Bank Ref No: $refNo', style: const TextStyle(fontSize: 12)),
+            ],
+            const SizedBox(height: 4),
             Text('Total Amount: LKR ${total.toStringAsFixed(2)}'),
             Text('Paid Amount: LKR ${paid.toStringAsFixed(2)}'),
           ],

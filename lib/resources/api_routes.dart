@@ -1,8 +1,9 @@
-﻿class ApiRoutes {
-  static const String baseUrl = 'http://172.18.192.1:8000/api/v1/';
+class ApiRoutes {
+  static const String baseUrl = 'http://192.168.208.1:8000/api/v1/';
   static const String loginUrl = 'mobile/rep/login';
   static const String checkTokenUrl = 'mobile/rep/check-token';
   static const String logoutUrl = 'mobile/rep/logout';
+  static const String updateFcmTokenUrl = 'mobile/rep/fcm-token';
   static const String CHECKHEALTH = 'mobile/rep/health';
   static const String createShopUrl = 'mobile/shops';
   static const String getMyShopsUrl = 'mobile/my-shops';
@@ -18,4 +19,5 @@
   static const String shopCreditSalesUrl = 'mobile/shops';
   static const String dailySettlementUrl = 'mobile/daily-settlement';
   static const String salesUrl = 'sales';
+  static const String activeBankAccountsUrl = 'mobile/bank-accounts/active';
 }

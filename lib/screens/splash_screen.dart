@@ -113,63 +113,24 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 children: [
                   // Professional Corporate Logo Emblem
                   Container(
-                    width: 110,
-                    height: 110,
+                    width: 120,
+                    height: 120,
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [AppColors.primaryOrange, Color(0xFFFF7A00), Color(0xFFC53000)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      color: isDark ? AppColors.darkCard : AppColors.lightCard,
                       borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: AppColors.primaryOrange.withOpacity(0.3), width: 2),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primaryOrange.withOpacity(0.45),
+                          color: AppColors.primaryOrange.withOpacity(0.25),
                           blurRadius: 24,
                           offset: const Offset(0, 12),
                         ),
                       ],
                     ),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Positioned(
-                          top: -10,
-                          right: -10,
-                          child: Icon(
-                            Icons.circle_outlined,
-                            size: 80,
-                            color: Colors.white.withOpacity(0.15),
-                          ),
-                        ),
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.storefront_rounded,
-                              size: 42,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(height: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Text(
-                                'SUNDARAM',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.2,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                    child: Image.asset(
+                      'assets/images/gemini-svg (1).png',
+                      fit: BoxFit.contain,
                     ),
                   ),
                   const SizedBox(height: 28),

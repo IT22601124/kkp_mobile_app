@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:kkp_rep_mobile_app/dio/dio_client.dart';
 import 'package:kkp_rep_mobile_app/resources/api_routes.dart';
 
@@ -13,6 +13,8 @@ class SalesProvider extends ChangeNotifier {
     int? dsrTripId,
     String? saleDate,
     required String paymentType,
+    int? bankAccountId,
+    String? referenceNumber,
     String status = 'COMPLETED',
     double discount = 0.0,
     double tax = 0.0,
@@ -30,6 +32,8 @@ class SalesProvider extends ChangeNotifier {
         if (dsrTripId != null) 'dsr_trip_id': dsrTripId,
         'sale_date': saleDate ?? DateTime.now().toString().split('.').first,
         'payment_type': paymentType,
+        if (bankAccountId != null) 'bank_account_id': bankAccountId,
+        if (referenceNumber != null && referenceNumber.isNotEmpty) 'reference_number': referenceNumber,
         'status': status,
         'discount': discount,
         'tax': tax,
@@ -140,7 +144,7 @@ class SalesProvider extends ChangeNotifier {
       }
       return null;
     } catch (e) {
-      debugPrint('Submit daily settlement error: ');
+      debugPrint('Submit daily settlement error: $e');
       rethrow;
     } finally {
       isLoading = false;

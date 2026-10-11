@@ -109,17 +109,24 @@ class _LoginScreenState extends State<LoginScreen> {
               // Logo Header
               Center(
                 child: Container(
-                  width: 90,
-                  height: 90,
+                  width: 100,
+                  height: 100,
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryOrange.withOpacity(0.15),
+                    color: isDark ? AppColors.darkCard : AppColors.lightCard,
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.primaryOrange, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primaryOrange.withOpacity(0.2),
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
-                  child: const Icon(
-                    Icons.storefront,
-                    color: AppColors.primaryOrange,
-                    size: 48,
+                  child: Image.asset(
+                    'assets/images/gemini-svg (1).png',
+                    fit: BoxFit.contain,
                   ),
                 ),
               ),
