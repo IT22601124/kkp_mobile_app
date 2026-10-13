@@ -210,53 +210,8 @@ class ShopProvider extends ChangeNotifier {
     }
   }
 
-  Future<List<ShopModel>> getMyShops() async {
-    isLoading = true;
-    notifyListeners();
-    try {
-      dynamic response;
-      try {
-        response = await _dioClient.get(ApiRoutes.shopsCreatedByUrl);
-      } catch (_) {
-        throw Exception('No internet connection');
-      }
-
-      if (response != null && response.statusCode == 200) {
-        final data = response.data;
-        List<dynamic> shopsJson = [];
-
-        if (data is Map) {
-          final target = data.containsKey('data') ? data['data'] : data;
-          if (target is List) {
-            shopsJson = target;
-          } else if (target is Map) {
-            if (target.containsKey('shops') && target['shops'] is List) {
-              shopsJson = target['shops'];
-            } else if (target.isNotEmpty && (target.containsKey('id') || target.containsKey('shop_name') || target.containsKey('shop_code') || target.containsKey('shopName'))) {
-              shopsJson = [target];
-            }
-          }
-        } else if (data is List) {
-          shopsJson = data;
-        }
-
-        debugPrint('Fetched ${shopsJson.length} shops from API');
-
-        listShops = shopsJson
-            .map((json) => ShopModel.fromJson(Map<String, dynamic>.from(json)))
-            .toList();
-
-        notifyListeners();
-        return listShops;
-      }
-      return [];
-    } catch (e) {
-      debugPrint('Error fetching shops: $e');
-      return [];
-    } finally {
-      isLoading = false;
-      notifyListeners();
-    }
+  Future<List<ShopModel>> getMyShops({int? routeId}) async {
+    return await getShopsByRoute(routeId: routeId);
   }
 
   Future<List<RouteModel>> getRoutes() async {

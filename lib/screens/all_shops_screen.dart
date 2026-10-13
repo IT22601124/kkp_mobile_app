@@ -2,6 +2,7 @@
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
 import '../models/shop_model.dart';
+import '../provider/auth_provider.dart';
 import '../provider/shop_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/register_shop_bottom_sheet.dart';
@@ -25,8 +26,10 @@ class _AllShopsScreenState extends State<AllShopsScreen> {
   }
 
   Future<void> _fetchShops() async {
+    final authProvider = context.read<AuthProvider>();
     final shopProvider = context.read<ShopProvider>();
-    await shopProvider.getMyShops();
+    int? routeId = authProvider.user?.repProfile?.assignedRouteId;
+    await shopProvider.getShopsByRoute(routeId: routeId);
   }
 
   void _deleteShop(int id, String name) async {
