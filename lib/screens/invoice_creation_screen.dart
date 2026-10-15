@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kkp_rep_mobile_app/provider/sales_provider.dart';
+import 'package:kkp_rep_mobile_app/widgets/app_snack_bar.dart';
 import '../models/dsr_models.dart';
 import '../models/item_model.dart';
 import '../models/shop_model.dart';
@@ -56,7 +57,16 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
 
       if (shopProvider.listShops.isEmpty) {
         int? routeId = authProvider.user?.repProfile?.assignedRouteId;
-        shopProvider.getShopsByRoute(routeId: routeId);
+        shopProvider.getShopsByRoute(routeId: routeId).catchError((_) {
+          if (mounted) {
+            AppSnackBar.showError(
+              context,
+              title: 'No Route Assigned',
+              message: 'You are not assigned to a route, please contact admin',
+            );
+          }
+          return <ShopModel>[];
+        });
       }
 
       if (itemProvider.listItems.isEmpty) {

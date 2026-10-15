@@ -5,6 +5,7 @@ import '../models/shop_model.dart';
 import '../provider/auth_provider.dart';
 import '../provider/shop_provider.dart';
 import '../theme/app_theme.dart';
+import 'package:kkp_rep_mobile_app/widgets/app_snack_bar.dart';
 import '../widgets/register_shop_bottom_sheet.dart';
 
 class AllShopsScreen extends StatefulWidget {
@@ -29,7 +30,17 @@ class _AllShopsScreenState extends State<AllShopsScreen> {
     final authProvider = context.read<AuthProvider>();
     final shopProvider = context.read<ShopProvider>();
     int? routeId = authProvider.user?.repProfile?.assignedRouteId;
-    await shopProvider.getShopsByRoute(routeId: routeId);
+    try {
+      await shopProvider.getShopsByRoute(routeId: routeId);
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.showError(
+          context,
+          title: 'No Route Assigned',
+          message: 'You are not assigned to a route, please contact admin',
+        );
+      }
+    }
   }
 
   void _deleteShop(int id, String name) async {
@@ -357,8 +368,26 @@ class _AllShopsScreenState extends State<AllShopsScreen> {
                         child: LoadingAnimationWidget.fallingDot(color: AppColors.primaryOrange, size: 40),
                       )
                     : filteredShops.isEmpty
-                        ? const Center(
-                            child: Text('No shops found.', style: TextStyle(color: AppColors.darkTextSub)),
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.route_outlined, size: 48, color: AppColors.primaryOrange),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    shopProvider.routeErrorMessage ?? 'No shops found.',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.darkTextSub,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           )
                         : RefreshIndicator(
                             onRefresh: _fetchShops,

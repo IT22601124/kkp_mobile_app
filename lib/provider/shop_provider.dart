@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:kkp_rep_mobile_app/dio/dio_client.dart';
 import 'package:kkp_rep_mobile_app/models/route_model.dart';
 import 'package:kkp_rep_mobile_app/models/shop_model.dart';
@@ -6,6 +7,7 @@ import 'package:kkp_rep_mobile_app/resources/api_routes.dart';
 
 class ShopProvider extends ChangeNotifier {
   bool isLoading = false;
+  String? routeErrorMessage;
   final DioClient _dioClient = DioClient();
   List<ShopModel> listShops = [];
   List<ShopModel> todayVisitedShops = [];
@@ -167,6 +169,7 @@ class ShopProvider extends ChangeNotifier {
 
   Future<List<ShopModel>> getShopsByRoute({int? routeId}) async {
     isLoading = true;
+    routeErrorMessage = null;
     notifyListeners();
     try {
       final response = await _dioClient.get(
@@ -200,6 +203,16 @@ class ShopProvider extends ChangeNotifier {
         notifyListeners();
         return listShops;
       }
+      return listShops;
+    } on DioException catch (e) {
+      final resData = e.response?.data;
+      if (e.response?.statusCode == 422 ||
+          (resData is Map && (resData['message']?.toString().contains('assigned route') ?? false))) {
+        routeErrorMessage = 'You are not assigned to a route, please contact admin';
+        debugPrint('Route error: $routeErrorMessage');
+        throw Exception('You are not assigned to a route, please contact admin');
+      }
+      debugPrint('Error fetching shops by route: $e');
       return listShops;
     } catch (e) {
       debugPrint('Error fetching shops by route: $e');
