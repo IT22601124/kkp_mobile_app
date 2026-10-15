@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/dsr_models.dart';
 import '../theme/app_theme.dart';
+import 'location_status_chip.dart';
 import 'status_chip.dart';
 
 class OutletCard extends StatelessWidget {
@@ -59,7 +60,18 @@ class OutletCard extends StatelessWidget {
                   ],
                 ),
               ),
-              StatusChip.fromOutletStatus(outlet.status),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  StatusChip.fromOutletStatus(outlet.status),
+                  const SizedBox(height: 4),
+                  LocationStatusChip(
+                    shopLat: outlet.latitude,
+                    shopLng: outlet.longitude,
+                    compact: true,
+                  ),
+                ],
+              ),
             ],
           ),
           const SizedBox(height: 10),

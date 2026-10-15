@@ -12,6 +12,8 @@ class Outlet {
   final String category;
   OutletStatus status;
   final double outstandingBalance;
+  final double latitude;
+  final double longitude;
 
   Outlet({
     required this.id,
@@ -23,6 +25,8 @@ class Outlet {
     required this.category,
     this.status = OutletStatus.pending,
     this.outstandingBalance = 0.0,
+    this.latitude = 0.0,
+    this.longitude = 0.0,
   });
 }
 

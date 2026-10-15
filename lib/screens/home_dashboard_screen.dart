@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kkp_rep_mobile_app/models/dsr_rep_profile.dart';
+import 'package:kkp_rep_mobile_app/provider/auth_provider.dart';
 import 'package:kkp_rep_mobile_app/provider/sales_provider.dart';
 import 'package:kkp_rep_mobile_app/provider/shop_provider.dart';
 import 'package:kkp_rep_mobile_app/provider/item_provider.dart';
@@ -52,12 +53,15 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       final shopProvider = context.read<ShopProvider>();
       final salesProvider = context.read<SalesProvider>();
       final itemProvider = context.read<ItemProvider>();
+      final authProvider = context.read<AuthProvider>();
 
-      // Fetch active route shops and visited shops
+      final int repId = authProvider.user?.id ?? authProvider.user?.repProfile?.id ?? widget.profile.id;
+
+      // Fetch active route shops, visited shops, and rep stock
       await Future.wait([
         shopProvider.getShopsByRoute(),
         shopProvider.getTodayVisitedShops(),
-        itemProvider.getRepStocks(widget.profile.id),
+        itemProvider.getRepStocks(repId),
       ]);
 
       // Fetch today's sales
@@ -280,27 +284,49 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             ],
           ),
           const SizedBox(height: 20),
+          // 4. Handheld Stock Balance Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Handheld Stock Balance',
-                style: TextStyle(fontSize: 16),
+              Row(
+                children: [
+                  const Text(
+                    'Handheld Stock Balance',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(width: 8),
+                  if (_repStocks.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryOrange.withAlpha((0.15 * 255).toInt()),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${_repStocks.length} Items',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryOrange,
+                        ),
+                      ),
+                    ),
+                ],
               ),
               GestureDetector(
                 onTap: () => widget.onNavigateTab(1),
                 child: const Row(
                   children: [
                     Text(
-                      'View',
+                      'View All',
                       style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.darkYellow,
+                        color: AppColors.primaryOrange,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     SizedBox(width: 4),
-                    Icon(Icons.arrow_forward, size: 14, color: AppColors.darkYellow),
+                    Icon(Icons.arrow_forward, size: 14, color: AppColors.primaryOrange),
                   ],
                 ),
               ),
@@ -310,20 +336,27 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           _isLoading
               ? const Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryOrange))
               : _repStocks.isEmpty
-                  ? const Text('No stocks available.')
-                  : Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _repStocks.take(4).map((stock) {
-                        return SizedBox(
-                          width: (MediaQuery.of(context).size.width - 32 - 24) / 4,
-                          child: _buildStockCard(
-                            stock.itemName,
-                            stock.quantity.toString(),
-                            isDark,
-                          ),
-                        );
-                      }).toList(),
+                  ? Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'No handheld stock currently assigned.',
+                        style: TextStyle(fontSize: 13, color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub),
+                      ),
+                    )
+                  : SizedBox(
+                      height: 110,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _repStocks.length,
+                        itemBuilder: (ctx, index) {
+                          return _buildStockCard(_repStocks[index], isDark);
+                        },
+                      ),
                     ),
           const SizedBox(height: 24),
 
@@ -381,32 +414,76 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     );
   }
 
-  Widget _buildStockCard(String title, String value, bool isDark, {bool isPrimary = false}) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-
-        child: Column(
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: isPrimary ? AppColors.darkYellow : (isDark ? AppColors.darkTextSub : AppColors.lightTextSub),
+  Widget _buildStockCard(RepStockModel stock, bool isDark) {
+    return Container(
+      width: 140,
+      margin: const EdgeInsets.only(right: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCard : AppColors.lightCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryOrange.withAlpha((0.15 * 255).toInt()),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  stock.itemCode.isNotEmpty ? stock.itemCode : 'STOCK',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryOrange,
+                  ),
+                ),
               ),
+              const Icon(Icons.inventory_2_outlined, size: 16, color: AppColors.primaryOrange),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            stock.itemName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
             ),
-            const SizedBox(height: 6),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                color: isPrimary ? AppColors.darkYellow : (isDark ? AppColors.darkTextMain : AppColors.lightTextMain),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                '${stock.quantity}',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.emeraldSuccess,
+                ),
               ),
-            ),
-          ],
-        ),
+              const SizedBox(width: 4),
+              Text(
+                stock.unit.isNotEmpty ? stock.unit : 'u',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

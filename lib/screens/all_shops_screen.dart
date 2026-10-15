@@ -6,6 +6,7 @@ import '../provider/auth_provider.dart';
 import '../provider/shop_provider.dart';
 import '../theme/app_theme.dart';
 import 'package:kkp_rep_mobile_app/widgets/app_snack_bar.dart';
+import '../widgets/location_status_chip.dart';
 import '../widgets/register_shop_bottom_sheet.dart';
 
 class AllShopsScreen extends StatefulWidget {
@@ -466,17 +467,18 @@ class _AllShopsScreenState extends State<AllShopsScreen> {
                                           Row(
                                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                             children: [
+                                              LocationStatusChip(
+                                                shopLat: shop.latitude,
+                                                shopLng: shop.longitude,
+                                                compact: true,
+                                              ),
                                               Text(
-                                                'Credit Balance: LKR ${shop.currentCreditBalance.toStringAsFixed(2)}',
+                                                'Credit: LKR ${shop.currentCreditBalance.toStringAsFixed(2)}',
                                                 style: TextStyle(
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.bold,
                                                   color: shop.currentCreditBalance > 0 ? AppColors.roseDanger : AppColors.emeraldSuccess,
                                                 ),
-                                              ),
-                                              const Text(
-                                                'Tap for Details →',
-                                                style: TextStyle(fontSize: 11, color: AppColors.primaryOrange, fontWeight: FontWeight.bold),
                                               ),
                                             ],
                                           ),

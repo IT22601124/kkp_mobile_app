@@ -11,6 +11,7 @@ import '../provider/bank_account_provider.dart';
 import '../provider/item_provider.dart';
 import '../provider/shop_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/location_status_chip.dart';
 
 class InvoiceCreationScreen extends StatefulWidget {
   final Outlet? initialOutlet;
@@ -69,6 +70,9 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
           return <ShopModel>[];
         });
       }
+
+      final int repId = authProvider.user?.id ?? authProvider.user?.repProfile?.id ?? 0;
+      itemProvider.getRepStocks(repId);
 
       if (itemProvider.listItems.isEmpty) {
         itemProvider.getItems();
@@ -1381,11 +1385,19 @@ Thank you for your business!
                 ],
               ),
 
+              if (_selectedShop != null) ...[
+                const SizedBox(height: 8),
+                LocationStatusChip(
+                  shopLat: _selectedShop!.latitude,
+                  shopLng: _selectedShop!.longitude,
+                ),
+              ],
+
               const SizedBox(height: 12),
 
               // Product Catalog Header
               const Text(
-                'PRODUCT CATALOG (TAP ITEM TO SET QUANTITY):',
+                'HANDHELD STOCK CATALOG (TAP ITEM TO SET QUANTITY):',
                 style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.amberWarning, letterSpacing: 0.5),
               ),
               const SizedBox(height: 8),
@@ -1428,16 +1440,26 @@ Thank you for your business!
               // Product Catalog ListView
               Consumer<ItemProvider>(
                 builder: (context, itemProvider, _) {
-                  final rawItems = itemProvider.listItems.isNotEmpty
-                      ? itemProvider.listItems
-                      : _catalogItems.map((e) => ItemModel(
-                            id: 0,
-                            itemCode: e['code'] as String,
-                            itemName: e['name'] as String,
-                            category: 'General',
-                            unitPrice: e['price'] as double,
-                            stock: int.tryParse((e['stock'] as String).split(' ').first) ?? 0,
-                          )).toList();
+                  final List<ItemModel> rawItems = itemProvider.listRepStocks.isNotEmpty
+                      ? itemProvider.listRepStocks.map((s) => ItemModel(
+                            id: s.itemId != 0 ? s.itemId : s.id,
+                            itemCode: s.itemCode,
+                            itemName: s.itemName,
+                            category: 'Handheld Stock',
+                            unitPrice: s.unitPrice,
+                            unit: s.unit,
+                            stock: s.quantity,
+                          )).toList()
+                      : (itemProvider.listItems.isNotEmpty
+                          ? itemProvider.listItems
+                          : _catalogItems.map((e) => ItemModel(
+                                id: 0,
+                                itemCode: e['code'] as String,
+                                itemName: e['name'] as String,
+                                category: 'General',
+                                unitPrice: e['price'] as double,
+                                stock: int.tryParse((e['stock'] as String).split(' ').first) ?? 0,
+                              )).toList());
 
                   final items = rawItems.where((catItem) {
                     final query = _productSearchQuery.toLowerCase().trim();
