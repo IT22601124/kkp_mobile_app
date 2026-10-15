@@ -72,6 +72,41 @@ class SalesProvider extends ChangeNotifier {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getSales({String? startDate, String? endDate}) async {
+    isLoading = true;
+    notifyListeners();
+    try {
+      final queryParams = <String, dynamic>{};
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+
+      final response = await _dioClient.get(ApiRoutes.salesUrl, queryParameters: queryParams);
+      if (response.statusCode == 200) {
+        final data = response.data;
+        List<dynamic> salesJson = [];
+        if (data is Map) {
+          final target = data.containsKey('data') ? data['data'] : data;
+          if (target is List) {
+            salesJson = target;
+          } else if (target is Map && target.containsKey('data')) { // Handle paginated response
+            salesJson = target['data'];
+          }
+        } else if (data is List) {
+          salesJson = data;
+        }
+
+        return salesJson.map((s) => Map<String, dynamic>.from(s)).toList();
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Get sales error: $e');
+      return [];
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getShopCreditSales(int shopId) async {
     isLoading = true;
     notifyListeners();

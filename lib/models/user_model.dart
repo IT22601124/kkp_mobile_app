@@ -7,6 +7,7 @@ class UserModel {
   String phone;
   String role;
   String? fcmToken;
+  String? avatarUrl;
   DsrRepProfile? repProfile;
 
   UserModel({
@@ -16,6 +17,7 @@ class UserModel {
     required this.phone,
     this.role = 'DSR_REP',
     this.fcmToken,
+    this.avatarUrl,
     this.repProfile,
   });
 
@@ -24,6 +26,7 @@ class UserModel {
     final nameVal = json['name']?.toString() ?? '';
     final phoneVal = json['phone']?.toString() ?? '';
     final fcmVal = json['fcm_token']?.toString() ?? json['device_token']?.toString();
+    final avatarVal = json['avatar_url']?.toString() ?? json['avatarUrl']?.toString() ?? json['avatar']?.toString();
 
     DsrRepProfile? profile;
     if (dsrProfileJson is Map) {
@@ -41,6 +44,7 @@ class UserModel {
       phone: phoneVal,
       role: json['role']?.toString() ?? json['user_type']?.toString() ?? 'DSR_REP',
       fcmToken: fcmVal,
+      avatarUrl: avatarVal,
       repProfile: profile,
     );
   }
@@ -53,6 +57,7 @@ class UserModel {
       'phone': phone,
       'role': role,
       'fcm_token': fcmToken,
+      'avatar_url': avatarUrl,
       'dsr_profile': repProfile?.toJson(),
     };
   }

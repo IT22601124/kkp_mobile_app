@@ -416,12 +416,15 @@ class _AllShopsScreenState extends State<AllShopsScreen> {
                                               Expanded(
                                                 child: Row(
                                                   children: [
-                                                    Text(
-                                                      shop.shopName,
-                                                      style: TextStyle(
-                                                        fontSize: 16,
-                                                        fontWeight: FontWeight.bold,
-                                                        color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
+                                                    Flexible(
+                                                      child: Text(
+                                                        shop.shopName,
+                                                        style: TextStyle(
+                                                          fontSize: 16,
+                                                          fontWeight: FontWeight.bold,
+                                                          color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
+                                                        ),
+                                                        overflow: TextOverflow.ellipsis,
                                                       ),
                                                     ),
                                                     const SizedBox(width: 6),

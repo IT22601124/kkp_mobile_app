@@ -52,7 +52,7 @@ class AuthProvider extends ChangeNotifier {
 
                 if (userMap != null) {
                   _user = UserModel.fromJson(userMap);
-                  debugPrint('User data loaded from token: ${_user?.name}, ${_user?.repProfile?.assignedRouteId}');
+                  debugPrint('User data loaded from token: ${_user?.name}, avatar: ${_user?.avatarUrl}');
                 }
               }
             }
@@ -177,6 +177,76 @@ class AuthProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Login error: $e');
       rethrow;
+    }
+  }
+
+  Future<String?> uploadAvatar(String imageFilePath) async {
+    try {
+      final fileName = imageFilePath.split('/').last;
+      final formData = FormData.fromMap({
+        'avatar': await MultipartFile.fromFile(
+          imageFilePath,
+          filename: fileName,
+        ),
+      });
+
+      final response = await _dioClient.post(
+        ApiRoutes.uploadAvatarUrl,
+        data: formData,
+      );
+
+      final data = response.data;
+      String? avatarUrl;
+      if (data is Map) {
+        if (data.containsKey('avatar_url')) {
+          avatarUrl = data['avatar_url']?.toString();
+        } else if (data.containsKey('data') && data['data'] is Map && (data['data'] as Map).containsKey('avatar_url')) {
+          avatarUrl = data['data']['avatar_url']?.toString();
+        } else if (data.containsKey('url')) {
+          avatarUrl = data['url']?.toString();
+        }
+      }
+
+      if (avatarUrl != null && avatarUrl.isNotEmpty) {
+        if (_user != null) {
+          _user!.avatarUrl = avatarUrl;
+        }
+        notifyListeners();
+        return avatarUrl;
+      }
+
+      // Re-fetch rep details to get newly saved avatar_url
+      await fetchRepMe();
+      return _user?.avatarUrl;
+    } catch (e) {
+      debugPrint('Error uploading avatar: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> fetchRepMe() async {
+    try {
+      final response = await _dioClient.get(ApiRoutes.repMeUrl);
+      final data = response.data;
+      if (response.statusCode == 200 && data is Map) {
+        Map<String, dynamic>? userMap;
+        if (data['data'] is Map && (data['data'] as Map).containsKey('user') && data['data']['user'] is Map) {
+          userMap = Map<String, dynamic>.from(data['data']['user']);
+        } else if (data['data'] is Map) {
+          userMap = Map<String, dynamic>.from(data['data']);
+        } else if (data['user'] is Map) {
+          userMap = Map<String, dynamic>.from(data['user']);
+        } else {
+          userMap = Map<String, dynamic>.from(data);
+        }
+
+        if (userMap != null) {
+          _user = UserModel.fromJson(userMap);
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching rep me details: $e');
     }
   }
 

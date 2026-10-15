@@ -4,6 +4,8 @@ class ApiRoutes {
   static const String checkTokenUrl = 'mobile/rep/check-token';
   static const String logoutUrl = 'mobile/rep/logout';
   static const String updateFcmTokenUrl = 'mobile/rep/fcm-token';
+  static const String uploadAvatarUrl = 'mobile/rep/avatar';
+  static const String repMeUrl = 'mobile/rep/me';
   static const String CHECKHEALTH = 'mobile/rep/health';
   static const String createShopUrl = 'mobile/shops';
   static const String getMyShopsUrl = 'mobile/my-shops';

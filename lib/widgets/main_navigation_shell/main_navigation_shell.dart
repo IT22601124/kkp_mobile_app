@@ -74,7 +74,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           onEndTripSuccess: () {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('DSR Day Trip successfully closed and cash sheet submitted!'),
+                content: Text(
+                  'DSR Day Trip successfully closed and cash sheet submitted!',
+                ),
                 backgroundColor: AppColors.emeraldSuccess,
               ),
             );
@@ -100,6 +102,11 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           },
         );
         break;
+      case 6:
+        currentBody = InvoiceCreationScreen(
+          initialOutlet: _selectedInvoiceOutlet,
+        );
+        break;
       default:
         currentBody = const SizedBox.shrink();
     }
@@ -121,19 +128,37 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 backgroundColor: Colors.white24,
                 child: Icon(Icons.person, size: 36, color: Colors.white),
               ),
-              accountName: Text(_repProfile.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              accountEmail: Text('Rep Code: ${_repProfile.repCode} • ${_repProfile.branchName}'),
+              accountName: Text(
+                _repProfile.name,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              accountEmail: Text(
+                'Rep Code: ${_repProfile.repCode} • ${_repProfile.branchName}',
+              ),
             ),
             _buildDrawerTile(0, 'Dashboard', Icons.dashboard),
             _buildDrawerTile(5, 'Route Outlets', Icons.storefront),
-            _buildDrawerTile(1, 'Stock Requisition', Icons.inventory_2_outlined),
+            _buildDrawerTile(
+              1,
+              'Stock Requisition',
+              Icons.inventory_2_outlined,
+            ),
             _buildDrawerTile(2, 'Shops & Credits', Icons.storefront_outlined),
             _buildDrawerTile(3, 'End of Day Trip', Icons.shield_outlined),
             _buildDrawerTile(4, 'Settings & Profile', Icons.settings_outlined),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.logout, color: AppColors.roseDanger),
-              title: const Text('Log Out', style: TextStyle(color: AppColors.roseDanger, fontWeight: FontWeight.bold)),
+              title: const Text(
+                'Log Out',
+                style: TextStyle(
+                  color: AppColors.roseDanger,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 widget.onLogout();
@@ -159,7 +184,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => InvoiceCreationScreen(initialOutlet: _selectedInvoiceOutlet),
+              builder: (context) =>
+                  InvoiceCreationScreen(initialOutlet: _selectedInvoiceOutlet),
             ),
           );
         },
@@ -223,9 +249,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                     ? const EdgeInsets.symmetric(horizontal: 20, vertical: 12)
                     : const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppColors.darkBg
-                      : Colors.transparent,
+                  color: isSelected ? AppColors.darkBg : Colors.transparent,
                   borderRadius: BorderRadius.circular(25),
                   boxShadow: isSelected
                       ? [
@@ -233,7 +257,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                             color: AppColors.darkBg.withOpacity(0.4),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
-                          )
+                          ),
                         ]
                       : null,
                 ),
@@ -244,7 +268,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                       icon,
                       color: isSelected
                           ? Colors.white
-                          : (isDark ? AppColors.darkTextSub : AppColors.lightTextSub),
+                          : (isDark
+                                ? AppColors.darkTextSub
+                                : AppColors.lightTextSub),
                       size: 20,
                     ),
                     if (isSelected) ...[
@@ -272,7 +298,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   Widget _buildDrawerTile(int index, String title, IconData icon) {
     final isSelected = _currentIndex == index;
     return ListTile(
-      leading: Icon(icon, color: isSelected ? AppColors.darkBg : AppColors.darkTextSub),
+      leading: Icon(
+        icon,
+        color: isSelected ? AppColors.darkBg : AppColors.darkTextSub,
+      ),
       title: Text(
         title,
         style: TextStyle(

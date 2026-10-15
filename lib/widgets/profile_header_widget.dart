@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kkp_rep_mobile_app/provider/auth_provider.dart';
 import 'package:provider/provider.dart';
 import '../screens/user_profile_screen.dart';
+import '../screens/notification_screen.dart';
 import '../theme/app_theme.dart';
 
 class ProfileHeaderWidget extends StatefulWidget {
@@ -114,8 +115,13 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
                       IconButton(
                         icon: const Icon(Icons.notifications_outlined, size: 28),
                         onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('2 Pending notifications')),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => NotificationScreen(
+                                isDarkMode: widget.isDarkMode,
+                              ),
+                            ),
                           );
                         },
                         constraints: const BoxConstraints(minWidth: 40, minHeight: 40),

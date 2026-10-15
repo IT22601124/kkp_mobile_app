@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:kkp_rep_mobile_app/models/dsr_rep_profile.dart';
+import 'package:kkp_rep_mobile_app/provider/sales_provider.dart';
+import 'package:kkp_rep_mobile_app/provider/shop_provider.dart';
+import 'package:kkp_rep_mobile_app/provider/item_provider.dart';
+import '../models/shop_model.dart';
+import '../models/rep_stock_model.dart';
 import '../theme/app_theme.dart';
 import '../widgets/register_shop_bottom_sheet.dart';
 import '../widgets/request_stock_screen.dart';
 
-class HomeDashboardScreen extends StatelessWidget {
+class HomeDashboardScreen extends StatefulWidget {
   final DsrRepProfile profile;
   final bool isDarkMode;
   final VoidCallback onToggleTheme;
@@ -19,8 +25,80 @@ class HomeDashboardScreen extends StatelessWidget {
   });
 
   @override
+  State<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
+}
+
+class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
+  bool _isLoading = true;
+  double _todayRevenue = 0.0;
+  final double _dailyTarget = 50000.0;
+  List<ShopModel> _routeShops = [];
+  List<ShopModel> _visitedShops = [];
+  List<RepStockModel> _repStocks = [];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchDashboardData();
+    });
+  }
+
+  Future<void> _fetchDashboardData() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+
+    try {
+      final shopProvider = context.read<ShopProvider>();
+      final salesProvider = context.read<SalesProvider>();
+      final itemProvider = context.read<ItemProvider>();
+
+      // Fetch active route shops and visited shops
+      await Future.wait([
+        shopProvider.getShopsByRoute(),
+        shopProvider.getTodayVisitedShops(),
+        itemProvider.getRepStocks(widget.profile.id),
+      ]);
+
+      // Fetch today's sales
+      final now = DateTime.now();
+      final dateStr = DateTime(now.year, now.month, now.day).toIso8601String().split('T').first;
+      final sales = await salesProvider.getSales(startDate: dateStr, endDate: dateStr);
+
+      double rev = 0.0;
+      for (var sale in sales) {
+        if (sale['status'] != 'CANCELLED') {
+          final amount = (sale['paid_amount'] ?? sale['total_amount'] ?? 0.0) is num
+              ? (sale['paid_amount'] ?? sale['total_amount'] ?? 0.0).toDouble()
+              : double.tryParse((sale['paid_amount'] ?? sale['total_amount'] ?? '0.0').toString()) ?? 0.0;
+          rev += amount;
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _routeShops = shopProvider.listShops;
+          _visitedShops = shopProvider.todayVisitedShops;
+          _repStocks = itemProvider.listRepStocks;
+          _todayRevenue = rev;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching dashboard data: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // KPI Math
+    final double ratio = (_todayRevenue / _dailyTarget).clamp(0.0, 1.0);
+    final String percentage = (ratio * 100).toStringAsFixed(0);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
@@ -51,17 +129,19 @@ class HomeDashboardScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        'LKR 45,000.00',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.darkBlack,
-                        ),
-                      ),
+                      _isLoading 
+                          ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.darkBlack))
+                          : Text(
+                              'LKR ${_todayRevenue.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.darkBlack,
+                              ),
+                            ),
                       const SizedBox(height: 8),
                       Text(
-                        'Target: LKR 50,000 (90% Met)',
+                        'Target: LKR ${_dailyTarget.toStringAsFixed(0)} ($percentage% Met)',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
@@ -81,19 +161,19 @@ class HomeDashboardScreen extends StatelessWidget {
                       width: 72,
                       height: 72,
                       child: CircularProgressIndicator(
-                        value: 0.9,
+                        value: ratio,
                         strokeWidth: 9,
                         strokeCap: StrokeCap.round,
-                        backgroundColor: isDark ? AppColors.darkBlack.withAlpha(32) : AppColors.lightInput,
+                        backgroundColor: isDark ? AppColors.darkBlack.withAlpha((0.15 * 255).toInt()) : AppColors.lightInput,
                         valueColor: const AlwaysStoppedAnimation<Color>(AppColors.darkBlack),
                       ),
                     ),
-                    const Column(
+                    Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          '90%',
-                          style: TextStyle(
+                          '$percentage%',
+                          style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
                             color: AppColors.darkBlack,
@@ -127,7 +207,7 @@ class HomeDashboardScreen extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: AppColors.emeraldSuccess.withOpacity(0.15),
+                            color: AppColors.emeraldSuccess.withAlpha((0.15 * 255).toInt()),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(Icons.storefront, color: AppColors.emeraldSuccess, size: 24),
@@ -174,7 +254,7 @@ class HomeDashboardScreen extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: AppColors.yellowLight.withOpacity(0.15),
+                            color: AppColors.yellowLight.withAlpha((0.15 * 255).toInt()),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(Icons.inventory_2_outlined, color: AppColors.darkYellow, size: 24),
@@ -208,7 +288,7 @@ class HomeDashboardScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 16),
               ),
               GestureDetector(
-                onTap: () => onNavigateTab(1),
+                onTap: () => widget.onNavigateTab(1),
                 child: const Row(
                   children: [
                     Text(
@@ -227,35 +307,43 @@ class HomeDashboardScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildStockCard('CARDS', '500', isDark),
-              _buildStockCard('4G SIMS', '30', isDark),
-              _buildStockCard('RELOAD', '117.1K', isDark, isPrimary: true),
-              _buildStockCard('RELOAD', '117.1K', isDark, isPrimary: true),
-            ],
-          ),
+          _isLoading
+              ? const Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryOrange))
+              : _repStocks.isEmpty
+                  ? const Text('No stocks available.')
+                  : Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _repStocks.take(4).map((stock) {
+                        return SizedBox(
+                          width: (MediaQuery.of(context).size.width - 32 - 24) / 4,
+                          child: _buildStockCard(
+                            stock.itemName,
+                            stock.quantity.toString(),
+                            isDark,
+                          ),
+                        );
+                      }).toList(),
+                    ),
           const SizedBox(height: 24),
 
-          // 5. Route Outlets (4 Shops)
+          // 5. Route Outlets
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Route Outlets (4 Shops)',
-                style: TextStyle(fontSize: 16),
+              Text(
+                'Route Outlets (${_routeShops.length} Shops)',
+                style: const TextStyle(fontSize: 16),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppColors.emeraldSuccess.withOpacity(0.15),
+                  color: AppColors.emeraldSuccess.withAlpha((0.15 * 255).toInt()),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text(
-                  '2 Visited',
-                  style: TextStyle(
+                child: Text(
+                  '${_visitedShops.length} Visited',
+                  style: const TextStyle(
                     color: AppColors.emeraldSuccess,
                     fontSize: 11,
                   ),
@@ -264,46 +352,29 @@ class HomeDashboardScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          _buildOutletCard(
-            context,
-            name: 'Saman Stores',
-            code: 'SH-1002',
-            address: 'Main Street, Dampola',
-            saleInfo: 'LKR 12,500',
-            status: 'Visited',
-            isDark: isDark,
-          ),
-          const SizedBox(height: 10),
-          _buildOutletCard(
-            context,
-            name: 'Lanka Traders',
-            code: 'SH-1004',
-            address: 'Market Place',
-            saleInfo: 'LKR 8,400',
-            status: 'Visited',
-            isDark: isDark,
-          ),
-          const SizedBox(height: 10),
-          _buildOutletCard(
-            context,
-            name: 'Shanika Communication',
-            code: 'SH-1008',
-            address: 'Bus Stand Junction',
-            saleInfo: 'LKR 14,000',
-            isCreditWarning: true,
-            showPosButton: true,
-            isDark: isDark,
-            onPosTap: () => onNavigateTab(3),
-          ),
-          const SizedBox(height: 10),
-          _buildOutletCard(
-            context,
-            name: 'Kandy Mini Mart',
-            code: 'SH-1010',
-            address: 'Temple Road',
-            saleInfo: 'Pending Visit',
-            isDark: isDark,
-          ),
+          _isLoading
+              ? const Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryOrange))
+              : _routeShops.isEmpty
+                  ? const Text('No shops found for your route.')
+                  : ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _routeShops.take(5).length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (ctx, index) {
+                        final shop = _routeShops[index];
+                        final bool isVisited = _visitedShops.any((v) => v.id == shop.id);
+                        return _buildOutletCard(
+                          context,
+                          name: shop.shopName,
+                          code: shop.shopCode.isNotEmpty ? shop.shopCode : 'SH-${shop.id}',
+                          address: shop.address,
+                          saleInfo: isVisited ? 'Visited' : 'Pending',
+                          status: isVisited ? 'Visited' : 'Pending Visit',
+                          isDark: isDark,
+                        );
+                      },
+                    ),
           const SizedBox(height: 80), // Padding for bottom nav / FAB
         ],
       ),
@@ -386,7 +457,7 @@ class HomeDashboardScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.emeraldSuccess.withOpacity(0.15),
+                    color: AppColors.emeraldSuccess.withAlpha((0.15 * 255).toInt()),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Row(

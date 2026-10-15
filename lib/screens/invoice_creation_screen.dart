@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:kkp_rep_mobile_app/provider/sales_provider.dart';
 import 'package:kkp_rep_mobile_app/widgets/app_snack_bar.dart';
 import '../models/dsr_models.dart';
@@ -1084,59 +1085,195 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
     );
   }
 
+  void _shareToWhatsApp(String saleCode, double total, double paid, String paymentType) async {
+    final shopName = _selectedShop?.shopName ?? "Customer";
+    final phone = _selectedShop?.phone;
+
+    final message = '''
+*Invoice Receipt*
+Shop: $shopName
+Transaction Code: $saleCode
+Total Amount: LKR ${total.toStringAsFixed(2)}
+Paid Amount: LKR ${paid.toStringAsFixed(2)}
+Payment Method: $paymentType
+
+Thank you for your business!
+''';
+
+    String? formattedPhone;
+    if (phone != null && phone.isNotEmpty) {
+      String cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+      if (cleanPhone.startsWith('0') && cleanPhone.length == 10) {
+        cleanPhone = '94${cleanPhone.substring(1)}';
+      } else if (!cleanPhone.startsWith('94') && cleanPhone.length == 9) {
+        cleanPhone = '94$cleanPhone';
+      }
+      formattedPhone = cleanPhone;
+    }
+
+    Uri uri;
+    if (formattedPhone != null) {
+      uri = Uri.parse('whatsapp://send?phone=$formattedPhone&text=${Uri.encodeComponent(message)}');
+    } else {
+      uri = Uri.parse('whatsapp://send?text=${Uri.encodeComponent(message)}');
+    }
+
+    try {
+      bool launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        if (mounted) AppSnackBar.showError(context, message: 'Could not launch WhatsApp. Is it installed?');
+      }
+    } catch (e) {
+      if (mounted) AppSnackBar.showError(context, message: 'Failed to open WhatsApp');
+    }
+  }
+
   void _showSaleSuccessDialog(String saleCode, double total, double paid, String paymentType, {String? bankInfo, String? refNo}) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.check_circle, color: AppColors.emeraldSuccess, size: 28),
-            SizedBox(width: 8),
-            Text('Sale Recorded!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Transaction Code: $saleCode', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryOrange)),
-            const SizedBox(height: 8),
-            Text('Shop: ${_selectedShop?.shopName ?? "N/A"}'),
-            Text('Payment Method: $paymentType'),
-            if (bankInfo != null && bankInfo.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (ctx) => Scaffold(
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            iconTheme: const IconThemeData(color: Colors.black),
+            title: const Text(
+              'Sale Receipt',
+              style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+            ),
+            centerTitle: true,
+          ),
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Text('Credited Bank: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                  Expanded(
-                    child: Text(
-                      bankInfo,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primaryOrange),
+                  const Icon(Icons.receipt_long, size: 64, color: Colors.black87),
+                  const SizedBox(height: 16),
+                  Text(
+                    _selectedShop?.shopName ?? "Customer",
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.black,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  if (_selectedShop?.phone != null && _selectedShop!.phone.isNotEmpty)
+                    Text(
+                      _selectedShop!.phone,
+                      style: const TextStyle(fontSize: 14, color: Colors.black54),
+                    ),
+                  const SizedBox(height: 32),
+                  
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8F9FA),
+                      border: Border.all(color: Colors.grey.shade300, width: 1.5),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildReceiptRow('Receipt No', saleCode, isBold: true),
+                        const SizedBox(height: 12),
+                        _buildReceiptRow('Payment Method', paymentType),
+                        if (bankInfo != null && bankInfo.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          _buildReceiptRow('Bank', bankInfo),
+                        ],
+                        if (refNo != null && refNo.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          _buildReceiptRow('Ref No', refNo),
+                        ],
+                        const SizedBox(height: 12),
+                        _buildReceiptRow('Date & Time', '${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}'),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16.0),
+                          child: Divider(color: Colors.grey, thickness: 1),
+                        ),
+                        _buildReceiptRow('Total Amount', 'LKR ${total.toStringAsFixed(2)}', isBold: true, isLarge: true),
+                        const SizedBox(height: 8),
+                        _buildReceiptRow('Paid Amount', 'LKR ${paid.toStringAsFixed(2)}'),
+                        const SizedBox(height: 8),
+                        _buildReceiptRow('Balance Due', 'LKR ${(total - paid).clamp(0.0, double.infinity).toStringAsFixed(2)}', isHighlight: true),
+                      ],
+                    ),
+                  ),
+                  
+                  const Spacer(),
+                  
+                  const Text(
+                    'Thank you for your business!',
+                    style: TextStyle(fontStyle: FontStyle.italic, color: Colors.black54, fontSize: 14),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // WhatsApp Share Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _shareToWhatsApp(saleCode, total, paid, paymentType),
+                      icon: const Icon(Icons.chat, color: Colors.white),
+                      label: const Text(
+                        'Share to WhatsApp',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF25D366), // WhatsApp Brand Color
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: TextButton.styleFrom(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      child: const Text(
+                        'Done',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+                      ),
                     ),
                   ),
                 ],
               ),
-            ],
-            if (refNo != null && refNo.isNotEmpty) ...[
-              const SizedBox(height: 2),
-              Text('Bank Ref No: $refNo', style: const TextStyle(fontSize: 12)),
-            ],
-            const SizedBox(height: 4),
-            Text('Total Amount: LKR ${total.toStringAsFixed(2)}'),
-            Text('Paid Amount: LKR ${paid.toStringAsFixed(2)}'),
-          ],
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.emeraldSuccess),
-            child: const Text('Done', style: TextStyle(color: Colors.white)),
+            ),
           ),
-        ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildReceiptRow(String label, String value, {bool isBold = false, bool isLarge = false, bool isHighlight = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: isLarge ? 16 : 14,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+            color: Colors.black54,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: isLarge ? 18 : 14,
+            fontWeight: (isBold || isHighlight) ? FontWeight.w900 : FontWeight.bold,
+            color: isHighlight ? AppColors.roseDanger : Colors.black87,
+          ),
+        ),
+      ],
     );
   }
 
@@ -1605,7 +1742,7 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                       child: const Text(
-                        'Proceed to Multi-Payment â†’',
+                        '      Checkout    ',
                         style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                     ),

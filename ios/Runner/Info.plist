@@ -39,6 +39,10 @@
 	<string>This app requires access to location to select and record shop location coordinates.</string>
 	<key>io.flutter.embedded_views_preview</key>
 	<true/>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>whatsapp</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

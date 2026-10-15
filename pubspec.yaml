@@ -45,6 +45,12 @@ dependencies:
   firebase_messaging: ^15.2.4
   firebase_remote_config: ^5.4.3
   flutter_local_notifications: ^18.0.1
+  image_picker: ^1.1.2
+  url_launcher: ^6.3.3
+  pdf: ^3.13.1
+  csv: ^8.0.0
+  path_provider: ^2.1.6
+  share_plus: ^13.3.1
 
 dev_dependencies:
   flutter_test:

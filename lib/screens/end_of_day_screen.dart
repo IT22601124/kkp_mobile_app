@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../provider/sales_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_snack_bar.dart';
 
 class EndOfDayScreen extends StatefulWidget {
   final VoidCallback onEndTripSuccess;
@@ -23,18 +24,21 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
   }
 
   Future<void> _fetchSettlementData() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    final data = await context.read<SalesProvider>().getDailySettlement();
-
-    if (mounted) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
       setState(() {
-        _settlementData = data;
-        _isLoading = false;
+        _isLoading = true;
       });
-    }
+
+      final data = await context.read<SalesProvider>().getDailySettlement();
+
+      if (mounted) {
+        setState(() {
+          _settlementData = data;
+          _isLoading = false;
+        });
+      }
+    });
   }
 
   double _parseDouble(dynamic val) {
@@ -109,7 +113,7 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                           const Text(
                             'DSR DAILY SETTLEMENT SHEET',
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 10,
                               fontWeight: FontWeight.bold,
                               color: AppColors.darkTextSub,
                               letterSpacing: 1.0,
@@ -119,7 +123,7 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                           Text(
                             'Date: $dateStr ($shopsVisited Shops Visited)',
                             style: const TextStyle(
-                              fontSize: 14,
+                              fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: AppColors.primaryOrange,
                             ),
@@ -135,15 +139,15 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                           color:
                               (_settlementData?['is_saved'] == true ||
                                   _settlementData?['status'] == 'SUBMITTED')
-                              ? AppColors.emeraldSuccess.withOpacity(0.2)
-                              : AppColors.primaryOrange.withOpacity(0.15),
+                              ? AppColors.emeraldSuccess.withAlpha((0.2 * 255).toInt())
+                              : AppColors.primaryOrange.withAlpha((0.15 * 255).toInt()),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color:
                                 (_settlementData?['is_saved'] == true ||
                                     _settlementData?['status'] == 'SUBMITTED')
                                 ? AppColors.emeraldSuccess
-                                : AppColors.primaryOrange.withOpacity(0.3),
+                                : AppColors.primaryOrange.withAlpha((0.3 * 255).toInt()),
                           ),
                         ),
                         child: Text(
@@ -158,7 +162,7 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                                     _settlementData?['status'] == 'SUBMITTED')
                                 ? AppColors.emeraldSuccess
                                 : AppColors.primaryOrange,
-                            fontSize: 11,
+                            fontSize: 9,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -249,6 +253,7 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                               ),
                             ),
                             Expanded(
+                              flex: 2,
                               child: Text(
                                 'SOLD QTY',
                                 textAlign: TextAlign.center,
@@ -313,6 +318,7 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                                     ),
                                   ),
                                   Expanded(
+                                    flex: 2,
                                     child: Text(
                                       '$soldQty',
                                       textAlign: TextAlign.center,
@@ -338,7 +344,7 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                                 ],
                               ),
                             );
-                          }).toList(),
+                          }),
                       ],
                     ),
                   ),
@@ -465,76 +471,84 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
-
-                  // Submit Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            title: const Text('Submit Settlement Sheet'),
-                            content: Text(
-                              'Submit pre-balanced settlement sheet for $dateStr (Total Sales: LKR ${totalSalesValue.toStringAsFixed(2)})?',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx),
-                                child: const Text('Cancel'),
-                              ),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryOrange,
-                                ),
-                                onPressed: () async {
-                                  Navigator.pop(ctx);
-                                  await _submitDailySettlementSheet(
-                                    totalSalesValue,
-                                    cashCollected,
-                                    chequesCollected,
-                                    onlineCollected,
-                                    creditIssued,
-                                    endingCredit,
-                                    shopsVisited,
-                                    dateStr,
-                                    itemsMatrix,
-                                  );
-                                },
-                                child: const Text(
-                                  'Confirm & Submit',
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryOrange,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      icon: const Icon(Icons.send, color: Colors.white),
-                      label: const Text(
-                        'Submit Pre-Balanced Sheet to Agent',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
+                  const SizedBox(height: 20),
                 ],
-                const SizedBox(height: 80),
               ],
+            ),
+          ),
+        ),
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+
+        ),
+        child: SafeArea(
+          child: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isLoading
+                  ? null
+                  : () {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          title: const Text('Submit Settlement Sheet'),
+                          content: Text(
+                            'Submit pre-balanced settlement sheet for $dateStr (Total Sales: LKR ${totalSalesValue.toStringAsFixed(2)})?',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Cancel'),
+                            ),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryOrange,
+                              ),
+                              onPressed: () async {
+                                Navigator.pop(ctx);
+                                await _submitDailySettlementSheet(
+                                  totalSalesValue,
+                                  cashCollected,
+                                  chequesCollected,
+                                  onlineCollected,
+                                  creditIssued,
+                                  endingCredit,
+                                  shopsVisited,
+                                  dateStr,
+                                  itemsMatrix,
+                                );
+                              },
+                              child: const Text(
+                                'Confirm & Submit',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryOrange,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: const Icon(Icons.send, color: Colors.white),
+              label: const Text(
+                'Submit Pre-Balanced Sheet to Agent',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
             ),
           ),
         ),
@@ -569,23 +583,19 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
 
       final result = await salesProvider.submitDailySettlement(payload);
       if (result != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Daily Settlement Sheet successfully saved to database!',
-            ),
-            backgroundColor: AppColors.emeraldSuccess,
-          ),
+        AppSnackBar.showSuccess(
+          context,
+          title: 'Settlement Saved',
+          message: 'Daily Settlement Sheet successfully saved to database!',
         );
         _fetchSettlementData();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to save settlement sheet: '),
-            backgroundColor: AppColors.roseDanger,
-          ),
+        AppSnackBar.showError(
+          context,
+          title: 'Settlement Error',
+          message: 'Failed to save settlement sheet: $e',
         );
       }
     }

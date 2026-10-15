@@ -117,10 +117,10 @@ class OutletCard extends StatelessWidget {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: onSell,
-                  icon: const Icon(Icons.point_of_sale, size: 16),
-                  label: const Text('Issue Invoice'),
+                  icon: Icon(outlet.status == OutletStatus.visited ? Icons.receipt_long : Icons.point_of_sale, size: 16),
+                  label: Text(outlet.status == OutletStatus.visited ? 'View Receipt' : 'Issue Invoice'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.amberWarning,
+                    backgroundColor: outlet.status == OutletStatus.visited ? AppColors.emeraldSuccess : AppColors.amberWarning,
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),

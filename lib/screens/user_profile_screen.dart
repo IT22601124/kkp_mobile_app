@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../provider/auth_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_snack_bar.dart';
 
-class UserProfileScreen extends StatelessWidget {
+class UserProfileScreen extends StatefulWidget {
   final bool isDarkMode;
   final VoidCallback onToggleTheme;
   final VoidCallback? onLogout;
@@ -16,9 +18,103 @@ class UserProfileScreen extends StatelessWidget {
   });
 
   @override
+  State<UserProfileScreen> createState() => _UserProfileScreenState();
+}
+
+class _UserProfileScreenState extends State<UserProfileScreen> {
+  bool _isUploading = false;
+
+  Future<void> _pickAndUploadAvatar(ImageSource source) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: source,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
+
+    if (pickedFile == null) return;
+
+    setState(() => _isUploading = true);
+
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final newUrl = await authProvider.uploadAvatar(pickedFile.path);
+
+      if (mounted) {
+        AppSnackBar.showSuccess(
+          context,
+          title: 'Avatar Updated',
+          message: 'Profile picture successfully updated!',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.showError(
+          context,
+          title: 'Upload Failed',
+          message: 'Failed to upload avatar: $e',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
+    }
+  }
+
+  void _showImagePickerModal() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Change Profile Picture',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: AppColors.primaryOrange),
+              title: const Text('Choose from Gallery'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickAndUploadAvatar(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: AppColors.cyanAccent),
+              title: const Text('Take a Photo'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickAndUploadAvatar(ImageSource.camera);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final user = context.watch<AuthProvider>().user;
+    final name = user?.name.isNotEmpty == true ? user!.name : 'DSR Representative';
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'U';
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
@@ -35,30 +131,65 @@ class UserProfileScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 20),
-              Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryOrange,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primaryOrange.withOpacity(0.4),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
+
+              // Avatar Circle with Edit Camera Badge
+              GestureDetector(
+                onTap: _isUploading ? null : _showImagePickerModal,
+                child: Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    Container(
+                      width: 96,
+                      height: 96,
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryOrange,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primaryOrange.withOpacity(0.35),
+                            blurRadius: 14,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                        image: user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty
+                            ? DecorationImage(
+                                image: NetworkImage(user.avatarUrl!),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                      ),
+                      child: _isUploading
+                          ? const Center(
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                            )
+                          : (user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty)
+                              ? null
+                              : Center(
+                                  child: Text(
+                                    initial,
+                                    style: const TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryOrange,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: isDark ? AppColors.darkBg : AppColors.lightBg, width: 2),
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        color: Colors.white,
+                        size: 16,
+                      ),
                     ),
                   ],
-                ),
-                child: Center(
-                  child: Text(
-                    user?.name != null && user!.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
-                    style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold),
-                  ),
                 ),
               ),
               const SizedBox(height: 16),
               Text(
-                user?.name ?? 'DSR Representative',
+                name,
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -71,11 +202,13 @@ class UserProfileScreen extends StatelessWidget {
                 style: const TextStyle(fontSize: 13, color: AppColors.darkTextSub),
               ),
               const SizedBox(height: 24),
-              Container(
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkCard : AppColors.lightCard,
+              Card(
+                color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                elevation: 0,
+                clipBehavior: Clip.antiAlias,
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                  side: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
                 ),
                 child: Column(
                   children: [
@@ -100,31 +233,33 @@ class UserProfileScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              Container(
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkCard : AppColors.lightCard,
+              Card(
+                color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                elevation: 0,
+                clipBehavior: Clip.antiAlias,
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                  side: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
                 ),
                 child: Column(
                   children: [
                     SwitchListTile(
-                      secondary: Icon(isDarkMode ? Icons.wb_sunny : Icons.nightlight_round, color: AppColors.cyanAccent),
+                      secondary: Icon(widget.isDarkMode ? Icons.wb_sunny : Icons.nightlight_round, color: AppColors.cyanAccent),
                       title: const Text('Dark Mode'),
-                      value: isDarkMode,
-                      onChanged: (val) => onToggleTheme(),
+                      value: widget.isDarkMode,
+                      onChanged: (val) => widget.onToggleTheme(),
                     ),
                   ],
                 ),
               ),
-              if (onLogout != null) ...[
+              if (widget.onLogout != null) ...[
                 const SizedBox(height: 32),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: () {
                       Navigator.pop(context);
-                      onLogout!();
+                      widget.onLogout!();
                     },
                     icon: const Icon(Icons.logout),
                     label: const Text('Log Out', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -137,6 +272,44 @@ class UserProfileScreen extends StatelessWidget {
                   ),
                 ),
               ],
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Log Out'),
+                        content: const Text('Are you sure you want to log out of your account?'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              widget.onLogout?.call();
+                            },
+                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.roseDanger),
+                            child: const Text('Log Out', style: TextStyle(color: Colors.white)),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: isDark ? AppColors.primaryOrange : AppColors.lightCard,
+                    foregroundColor: AppColors.roseDanger,
+                    side: const BorderSide(color: AppColors.roseDanger),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: Icon(Icons.logout, color: isDark ? Colors.white : AppColors.roseDanger),
+                  label: Text('LOG OUT FROM APP',
+                      style: TextStyle(fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : AppColors.roseDanger
+                      )),
+                ),
+              ),
             ],
           ),
         ),
