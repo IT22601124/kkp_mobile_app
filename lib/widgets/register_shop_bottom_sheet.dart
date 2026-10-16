@@ -1,16 +1,20 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
+import '../models/shop_model.dart';
 import '../models/route_model.dart';
 import '../provider/shop_provider.dart';
 import '../theme/app_theme.dart';
+import 'google_map_picker_screen.dart';
 
 class RegisterShopBottomSheet extends StatefulWidget {
-  const RegisterShopBottomSheet({super.key});
+  final ShopModel? shopToEdit;
 
-  static void show(BuildContext context) {
+  const RegisterShopBottomSheet({super.key, this.shopToEdit});
+
+  static void show(BuildContext context, {ShopModel? shopToEdit}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
@@ -22,7 +26,7 @@ class RegisterShopBottomSheet extends StatefulWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => const RegisterShopBottomSheet(),
+      builder: (context) => RegisterShopBottomSheet(shopToEdit: shopToEdit),
     );
   }
 
@@ -49,6 +53,21 @@ class _RegisterShopBottomSheetState extends State<RegisterShopBottomSheet> {
   @override
   void initState() {
     super.initState();
+    if (widget.shopToEdit != null) {
+      final shop = widget.shopToEdit!;
+      _shopNameController.text = shop.shopName;
+      _shopCodeController.text = shop.shopCode;
+      _ownerController.text = shop.ownerName;
+      _phoneController.text = shop.phone;
+      _addressController.text = shop.address;
+      _creditLimitController.text = shop.creditLimit.toString();
+      _creditBalanceController.text = shop.currentCreditBalance.toString();
+      
+      if (shop.latitude != 0 && shop.longitude != 0) {
+        _selectedLatLng = LatLng(shop.latitude, shop.longitude);
+        _latLongCoordinates = '${shop.latitude.toStringAsFixed(4)}° N, ${shop.longitude.toStringAsFixed(4)}° E (Pinned)';
+      }
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadRoutes();
     });
@@ -63,7 +82,14 @@ class _RegisterShopBottomSheetState extends State<RegisterShopBottomSheet> {
     if (mounted) {
       setState(() {
         if (routes.isNotEmpty) {
-          _selectedRouteModel = routes.first;
+          if (widget.shopToEdit != null) {
+            _selectedRouteModel = routes.firstWhere(
+              (r) => r.id == widget.shopToEdit!.routeId, 
+              orElse: () => routes.first
+            );
+          } else {
+            _selectedRouteModel = routes.first;
+          }
         }
         _isLoadingRoutes = false;
       });
@@ -77,69 +103,27 @@ class _RegisterShopBottomSheetState extends State<RegisterShopBottomSheet> {
     });
   }
 
-  void _openMapPicker() {
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          title: const Row(
-            children: [
-              Icon(Icons.map_rounded, color: AppColors.cyanAccent),
-              SizedBox(width: 8),
-              Text('Google Map Location Pin', style: TextStyle(fontSize: 16)),
-            ],
-          ),
-          content: SizedBox(
-            width: double.maxFinite,
-            height: 300,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: GoogleMap(
-                initialCameraPosition: CameraPosition(
-                  target: _selectedLatLng,
-                  zoom: 15,
-                ),
-                myLocationButtonEnabled: false,
-                myLocationEnabled: false,
-                markers: {
-                  Marker(
-                    markerId: const MarkerId('shop_pin'),
-                    position: _selectedLatLng,
-                    draggable: true,
-                    onDragEnd: (newPos) {
-                      setDialogState(() {
-                        _selectedLatLng = newPos;
-                      });
-                    },
-                  ),
-                },
-                onTap: (latLng) {
-                  setDialogState(() {
-                    _selectedLatLng = latLng;
-                  });
-                },
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _latLongCoordinates = '${_selectedLatLng.latitude.toStringAsFixed(4)}° N, ${_selectedLatLng.longitude.toStringAsFixed(4)}° E (Pinned)';
-                });
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('GPS Location successfully pinned from Google Maps!'), backgroundColor: AppColors.emeraldSuccess),
-                );
-              },
-              child: const Text('Confirm Map Pin'),
-            ),
-          ],
+  void _openMapPicker() async {
+    final selectedLocation = await Navigator.push<LatLng>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GoogleMapPickerScreen(
+          initialPosition: _selectedLatLng,
         ),
       ),
     );
+
+    if (selectedLocation != null) {
+      setState(() {
+        _selectedLatLng = selectedLocation;
+        _latLongCoordinates = '${_selectedLatLng.latitude.toStringAsFixed(4)}° N, ${_selectedLatLng.longitude.toStringAsFixed(4)}° E (Pinned)';
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('GPS Location successfully pinned from map!'), backgroundColor: AppColors.emeraldSuccess),
+        );
+      }
+    }
   }
 
   void _submitShop() async {
@@ -158,34 +142,56 @@ class _RegisterShopBottomSheetState extends State<RegisterShopBottomSheet> {
     final navigator = Navigator.of(context);
 
     try {
-      await context.read<ShopProvider>().createShop(
-        shopName: shopName,
-        ownerName: ownerName,
-        phone: phone,
-        address: address,
-        routeId: routeId,
-        latitude: _selectedLatLng.latitude,
-        longitude: _selectedLatLng.longitude,
-        creditLimit: creditLimit,
-        currentCreditBalance: currentCreditBalance,
-      );
-
-      if (navigator.canPop()) {
-        navigator.pop();
+      if (widget.shopToEdit != null) {
+        await context.read<ShopProvider>().updateShop(
+          shopId: widget.shopToEdit!.id,
+          shopName: shopName,
+          ownerName: ownerName,
+          phone: phone,
+          address: address,
+          routeId: routeId,
+          latitude: _selectedLatLng.latitude,
+          longitude: _selectedLatLng.longitude,
+          creditLimit: creditLimit,
+        );
+        if (navigator.canPop()) {
+          navigator.pop();
+        }
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text('Retail outlet "$shopName" updated successfully!'),
+            backgroundColor: AppColors.emeraldSuccess,
+          ),
+        );
+      } else {
+        await context.read<ShopProvider>().createShop(
+          shopName: shopName,
+          ownerName: ownerName,
+          phone: phone,
+          address: address,
+          routeId: routeId,
+          latitude: _selectedLatLng.latitude,
+          longitude: _selectedLatLng.longitude,
+          creditLimit: creditLimit,
+          currentCreditBalance: currentCreditBalance,
+        );
+        if (navigator.canPop()) {
+          navigator.pop();
+        }
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text('Retail outlet "$shopName" registered successfully!'),
+            backgroundColor: AppColors.emeraldSuccess,
+          ),
+        );
       }
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Text('Retail outlet "$shopName" registered successfully!'),
-          backgroundColor: AppColors.emeraldSuccess,
-        ),
-      );
     } catch (e) {
       if (navigator.canPop()) {
         navigator.pop();
       }
       scaffoldMessenger.showSnackBar(
         SnackBar(
-          content: Text('Shop registered ($shopName): ${e.toString().replaceAll('Exception: ', '')}'),
+          content: Text('${widget.shopToEdit != null ? "Updated" : "Registered"} ($shopName): ${e.toString().replaceAll('Exception: ', '')}'),
           backgroundColor: AppColors.emeraldSuccess,
         ),
       );
