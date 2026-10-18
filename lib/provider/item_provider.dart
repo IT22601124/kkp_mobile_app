@@ -79,6 +79,10 @@ class ItemProvider extends ChangeNotifier {
   }
 
   Future<List<RepStockModel>> getRepStocks(int repId) async {
+    if (repId <= 0) {
+      debugPrint('getRepStocks skipped: invalid repId $repId');
+      return listRepStocks;
+    }
     isLoading = true;
     notifyListeners();
     try {

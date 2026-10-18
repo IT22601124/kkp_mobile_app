@@ -159,7 +159,11 @@ Thank you for your business!
       if (mounted) Navigator.pop(context); // pop loading
 
       // Find sale for this shop
-      final shopSales = sales.where((s) => s['shop_id'] == outlet.id && s['status'] != 'CANCELLED').toList();
+      final shopSales = sales.where((s) {
+        if (s['shop_id'] != outlet.id || s['status'] == 'CANCELLED') return false;
+        final sDate = (s['sale_date'] ?? s['created_at'])?.toString().split('T').first;
+        return sDate == dateStr;
+      }).toList();
       
       if (shopSales.isEmpty) {
         if (mounted) {

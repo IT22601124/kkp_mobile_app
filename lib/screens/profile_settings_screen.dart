@@ -88,10 +88,12 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           break;
         case 'Monthly':
           startDate = DateTime(now.year, now.month, 1);
+          endDate = DateTime(now.year, now.month + 1, 0);
           _targetAmount = 1200000.0;
           break;
         case 'Yearly':
           startDate = DateTime(now.year, 1, 1);
+          endDate = DateTime(now.year, 12, 31);
           _targetAmount = 13000000.0;
           break;
         case 'Date Range':
@@ -118,6 +120,21 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       List<Map<String, dynamic>> updatedTransactions = [];
 
       for (var sale in sales) {
+        // Verify sale date falls strictly within [startDate, endDate] range
+        final rawDateStr = (sale['sale_date'] ?? sale['created_at'])?.toString().split('T').first;
+        if (rawDateStr != null && rawDateStr.isNotEmpty) {
+          try {
+            final saleDate = DateTime.parse(rawDateStr);
+            final saleDay = DateTime(saleDate.year, saleDate.month, saleDate.day);
+            final sDay = DateTime(startDate.year, startDate.month, startDate.day);
+            final eDay = DateTime(endDate.year, endDate.month, endDate.day);
+
+            if (saleDay.isBefore(sDay) || saleDay.isAfter(eDay)) {
+              continue; // Skip sales outside selected filter date range
+            }
+          } catch (_) {}
+        }
+
         final amount = (sale['paid_amount'] ?? sale['total_amount'] ?? 0.0) is num
             ? (sale['paid_amount'] ?? sale['total_amount'] ?? 0.0).toDouble()
             : double.tryParse((sale['paid_amount'] ?? sale['total_amount'] ?? '0.0').toString()) ?? 0.0;

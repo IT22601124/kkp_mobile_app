@@ -71,8 +71,22 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
         });
       }
 
-      final int repId = authProvider.user?.id ?? authProvider.user?.repProfile?.id ?? 0;
-      itemProvider.getRepStocks(repId);
+      int repId = authProvider.user?.id ?? authProvider.user?.repProfile?.userId ?? authProvider.user?.repProfile?.id ?? 0;
+      if (repId <= 0) {
+        if (authProvider.user == null) {
+          authProvider.checkSavedToken().then((_) {
+            final id = authProvider.user?.id ?? authProvider.user?.repProfile?.userId ?? authProvider.user?.repProfile?.id ?? 0;
+            if (id > 0) itemProvider.getRepStocks(id);
+          });
+        } else if (authProvider.user?.repProfile == null) {
+          authProvider.fetchRepMe().then((_) {
+            final id = authProvider.user?.id ?? authProvider.user?.repProfile?.userId ?? authProvider.user?.repProfile?.id ?? 0;
+            if (id > 0) itemProvider.getRepStocks(id);
+          });
+        }
+      } else {
+        itemProvider.getRepStocks(repId);
+      }
 
       if (itemProvider.listItems.isEmpty) {
         itemProvider.getItems();

@@ -32,7 +32,8 @@ class HomeDashboardScreen extends StatefulWidget {
 class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   bool _isLoading = true;
   double _todayRevenue = 0.0;
-  final double _dailyTarget = 50000.0;
+  double _monthlyRevenue = 0.0;
+  final double _monthlyTarget = 1200000.0;
   List<ShopModel> _routeShops = [];
   List<ShopModel> _visitedShops = [];
   List<RepStockModel> _repStocks = [];
@@ -55,7 +56,14 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       final itemProvider = context.read<ItemProvider>();
       final authProvider = context.read<AuthProvider>();
 
-      final int repId = authProvider.user?.id ?? authProvider.user?.repProfile?.id ?? widget.profile.id;
+      if (authProvider.user == null) {
+        await authProvider.checkSavedToken();
+      }
+      if (authProvider.user?.repProfile == null) {
+        await authProvider.fetchRepMe();
+      }
+
+      int repId = authProvider.user?.id ?? authProvider.user?.repProfile?.userId ?? authProvider.user?.repProfile?.id ?? widget.profile.id;
 
       // Fetch active route shops, visited shops, and rep stock
       await Future.wait([
@@ -64,18 +72,30 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         itemProvider.getRepStocks(repId),
       ]);
 
-      // Fetch today's sales
+      // Fetch monthly sales (01 to end of current month)
       final now = DateTime.now();
-      final dateStr = DateTime(now.year, now.month, now.day).toIso8601String().split('T').first;
-      final sales = await salesProvider.getSales(startDate: dateStr, endDate: dateStr);
+      final firstDayOfMonth = DateTime(now.year, now.month, 1);
+      final lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
 
-      double rev = 0.0;
+      final startStr = firstDayOfMonth.toIso8601String().split('T').first; // e.g. "2026-10-01"
+      final endStr = lastDayOfMonth.toIso8601String().split('T').first;   // e.g. "2026-10-31"
+      final todayStr = DateTime(now.year, now.month, now.day).toIso8601String().split('T').first;
+
+      final sales = await salesProvider.getSales(startDate: startStr, endDate: endStr);
+
+      double mRev = 0.0;
+      double tRev = 0.0;
       for (var sale in sales) {
         if (sale['status'] != 'CANCELLED') {
           final amount = (sale['paid_amount'] ?? sale['total_amount'] ?? 0.0) is num
               ? (sale['paid_amount'] ?? sale['total_amount'] ?? 0.0).toDouble()
               : double.tryParse((sale['paid_amount'] ?? sale['total_amount'] ?? '0.0').toString()) ?? 0.0;
-          rev += amount;
+          mRev += amount;
+
+          final saleDate = sale['sale_date']?.toString().split('T').first ?? '';
+          if (saleDate == todayStr) {
+            tRev += amount;
+          }
         }
       }
 
@@ -84,7 +104,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           _routeShops = shopProvider.listShops;
           _visitedShops = shopProvider.todayVisitedShops;
           _repStocks = itemProvider.listRepStocks;
-          _todayRevenue = rev;
+          _monthlyRevenue = mRev;
+          _todayRevenue = tRev;
           _isLoading = false;
         });
       }
@@ -101,8 +122,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     // KPI Math
-    final double ratio = (_todayRevenue / _dailyTarget).clamp(0.0, 1.0);
+    final double ratio = (_monthlyRevenue / _monthlyTarget).clamp(0.0, 1.0);
     final String percentage = (ratio * 100).toStringAsFixed(0);
+    final int lastDay = DateTime(DateTime.now().year, DateTime.now().month + 1, 0).day;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
@@ -124,31 +146,31 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'TODAY SALES REVENUE',
+                        'MONTHLY SALES REVENUE (01 - $lastDay)',
                         style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
                           color: isDark ? AppColors.darkBlack : AppColors.darkBlack,
-                          letterSpacing: 1.0,
+                          letterSpacing: 0.8,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       _isLoading 
                           ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.darkBlack))
                           : Text(
-                              'LKR ${_todayRevenue.toStringAsFixed(2)}',
+                              'LKR ${_monthlyRevenue.toStringAsFixed(2)}',
                               style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w800,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
                                 color: AppColors.darkBlack,
                               ),
                             ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Text(
-                        'Target: LKR ${_dailyTarget.toStringAsFixed(0)} ($percentage% Met)',
+                        'Today: LKR ${_todayRevenue.toStringAsFixed(2)} • $percentage% Target Met',
                         style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
                           color: isDark ? AppColors.darkBlack : AppColors.darkBlack,
                         ),
                       ),
