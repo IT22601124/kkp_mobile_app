@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -25,13 +28,7 @@ class InvoiceCreationScreen extends StatefulWidget {
 class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
   ShopModel? _selectedShop;
   String _productSearchQuery = '';
-  final List<Map<String, dynamic>> _cartItems = [
-
-  ];
-
-  final List<Map<String, dynamic>> _catalogItems = [
-
-  ];
+  final List<Map<String, dynamic>> _cartItems = [];
 
   @override
   void initState() {
@@ -364,6 +361,8 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
     final bankRefController = TextEditingController();
     final notesController = TextEditingController();
     int? selectedBankAccountId;
+    XFile? selectedSlipFile;
+    String? selectedSlipBase64;
 
     List<Map<String, dynamic>> splitPayments = [
       {'payment_type': 'CASH', 'amount_controller': TextEditingController(text: subtotal.toStringAsFixed(2)), 'reference_number': '', 'bank_account_id': null},
@@ -380,6 +379,30 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             final bankAccountProvider = Provider.of<BankAccountProvider>(context, listen: false);
+
+            Future<void> pickSlipImage(ImageSource source) async {
+              try {
+                final picker = ImagePicker();
+                final picked = await picker.pickImage(
+                  source: source,
+                  maxWidth: 1600,
+                  maxHeight: 1600,
+                  imageQuality: 85,
+                );
+                if (picked != null) {
+                  final bytes = await picked.readAsBytes();
+                  final ext = picked.path.split('.').last.toLowerCase();
+                  final mime = (ext == 'png') ? 'image/png' : 'image/jpeg';
+                  final b64 = 'data:$mime;base64,${base64Encode(bytes)}';
+                  setModalState(() {
+                    selectedSlipFile = picked;
+                    selectedSlipBase64 = b64;
+                  });
+                }
+              } catch (e) {
+                debugPrint('Error picking slip image: $e');
+              }
+            }
             if (selectedBankAccountId == null && bankAccountProvider.listBankAccounts.isNotEmpty) {
               selectedBankAccountId = bankAccountProvider.selectedBankAccount?.id ?? bankAccountProvider.listBankAccounts.first.id;
             }
@@ -939,6 +962,162 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                                 ),
                               ),
+                              const SizedBox(height: 10),
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: isDark ? AppColors.darkCard.withOpacity(0.5) : Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: selectedSlipFile != null
+                                        ? AppColors.emeraldSuccess.withOpacity(0.6)
+                                        : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.receipt_long,
+                                              size: 16,
+                                              color: selectedSlipFile != null ? AppColors.emeraldSuccess : AppColors.primaryOrange,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            const Text(
+                                              'Bank Clip / Slip Receipt Photo',
+                                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                            ),
+                                          ],
+                                        ),
+                                        if (selectedSlipFile != null)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.emeraldSuccess.withOpacity(0.15),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: const Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(Icons.check_circle, size: 10, color: AppColors.emeraldSuccess),
+                                                SizedBox(width: 3),
+                                                Text(
+                                                  'ATTACHED',
+                                                  style: TextStyle(
+                                                    fontSize: 9,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: AppColors.emeraldSuccess,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    if (selectedSlipFile != null) ...[
+                                      Row(
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(6),
+                                            child: Image.file(
+                                              File(selectedSlipFile!.path),
+                                              width: 55,
+                                              height: 55,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  selectedSlipFile!.name,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                                                ),
+                                                const SizedBox(height: 2),
+                                                const Text(
+                                                  'Ready to record with sale',
+                                                  style: TextStyle(fontSize: 10, color: Colors.grey),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Row(
+                                                  children: [
+                                                    InkWell(
+                                                      onTap: () => pickSlipImage(ImageSource.camera),
+                                                      child: const Row(
+                                                        children: [
+                                                          Icon(Icons.camera_alt, size: 12, color: AppColors.primaryOrange),
+                                                          SizedBox(width: 3),
+                                                          Text('Retake', style: TextStyle(fontSize: 10, color: AppColors.primaryOrange, fontWeight: FontWeight.w600)),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 14),
+                                                    InkWell(
+                                                      onTap: () {
+                                                        setModalState(() {
+                                                          selectedSlipFile = null;
+                                                          selectedSlipBase64 = null;
+                                                        });
+                                                      },
+                                                      child: const Row(
+                                                        children: [
+                                                          Icon(Icons.delete_outline, size: 12, color: AppColors.roseDanger),
+                                                          SizedBox(width: 3),
+                                                          Text('Remove', style: TextStyle(fontSize: 10, color: AppColors.roseDanger, fontWeight: FontWeight.w600)),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ] else ...[
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: OutlinedButton.icon(
+                                              onPressed: () => pickSlipImage(ImageSource.camera),
+                                              icon: const Icon(Icons.camera_alt, size: 14, color: AppColors.primaryOrange),
+                                              label: const Text('Take Photo', style: TextStyle(fontSize: 11, color: AppColors.primaryOrange)),
+                                              style: OutlinedButton.styleFrom(
+                                                side: const BorderSide(color: AppColors.primaryOrange),
+                                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: OutlinedButton.icon(
+                                              onPressed: () => pickSlipImage(ImageSource.gallery),
+                                              icon: Icon(Icons.photo_library, size: 14, color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain),
+                                              label: Text('Upload Slip', style: TextStyle(fontSize: 11, color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain)),
+                                              style: OutlinedButton.styleFrom(
+                                                side: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -1037,6 +1216,7 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                                         paymentType: paymentType,
                                         bankAccountId: paymentType == 'ONLINE' ? selectedBankAccountId : null,
                                         referenceNumber: paymentType == 'ONLINE' ? bankRefController.text : null,
+                                        bankSlip: paymentType == 'ONLINE' ? selectedSlipBase64 : null,
                                         discount: discount,
                                         tax: tax,
                                         paidAmount: paidAmount,
@@ -1454,8 +1634,9 @@ Thank you for your business!
               // Product Catalog ListView
               Consumer<ItemProvider>(
                 builder: (context, itemProvider, _) {
-                  final List<ItemModel> rawItems = itemProvider.listRepStocks.isNotEmpty
-                      ? itemProvider.listRepStocks.map((s) => ItemModel(
+                  final List<ItemModel> rawItems = itemProvider.listRepStocks
+                      .where((s) => s.quantity > 0)
+                      .map((s) => ItemModel(
                             id: s.itemId != 0 ? s.itemId : s.id,
                             itemCode: s.itemCode,
                             itemName: s.itemName,
@@ -1463,17 +1644,8 @@ Thank you for your business!
                             unitPrice: s.unitPrice,
                             unit: s.unit,
                             stock: s.quantity,
-                          )).toList()
-                      : (itemProvider.listItems.isNotEmpty
-                          ? itemProvider.listItems
-                          : _catalogItems.map((e) => ItemModel(
-                                id: 0,
-                                itemCode: e['code'] as String,
-                                itemName: e['name'] as String,
-                                category: 'General',
-                                unitPrice: e['price'] as double,
-                                stock: int.tryParse((e['stock'] as String).split(' ').first) ?? 0,
-                              )).toList());
+                          ))
+                      .toList();
 
                   final items = rawItems.where((catItem) {
                     final query = _productSearchQuery.toLowerCase().trim();
@@ -1488,11 +1660,25 @@ Thank you for your business!
                         ? const Center(child: CircularProgressIndicator(color: AppColors.primaryOrange))
                         : items.isEmpty
                             ? Center(
-                                child: Text(
-                                  'No items found matching "$_productSearchQuery"',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.inventory_2_outlined, size: 28, color: AppColors.darkTextSub),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        _productSearchQuery.isNotEmpty
+                                            ? 'No handled stock items found matching "$_productSearchQuery"'
+                                            : 'No handheld stock available for sale. Please request stock from warehouse.',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               )

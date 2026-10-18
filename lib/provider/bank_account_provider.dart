@@ -6,17 +6,11 @@ import 'package:kkp_rep_mobile_app/resources/api_routes.dart';
 class BankAccountProvider extends ChangeNotifier {
   bool isLoading = false;
   final DioClient _dioClient = DioClient();
-  List<BankAccountModel> listBankAccounts = BankAccountModel.defaultAccounts;
+  List<BankAccountModel> listBankAccounts = [];
   BankAccountModel? selectedBankAccount;
 
   BankAccountProvider() {
-    // Pre-select default account (Commercial Bank)
-    if (listBankAccounts.isNotEmpty) {
-      selectedBankAccount = listBankAccounts.firstWhere(
-        (b) => b.isDefault,
-        orElse: () => listBankAccounts.first,
-      );
-    }
+    // Initialized empty - will load real accounts from backend API
   }
 
   void selectAccount(BankAccountModel account) {
@@ -76,10 +70,8 @@ class BankAccountProvider extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Failed to load bank accounts from API, using default 4 accounts: $e');
-      if (listBankAccounts.isEmpty) {
-        listBankAccounts = BankAccountModel.defaultAccounts;
-        selectedBankAccount = listBankAccounts.first;
-      }
+      // Keep empty if API failed to prevent invalid IDs
+      selectedBankAccount = null;
     } finally {
       isLoading = false;
       notifyListeners();
