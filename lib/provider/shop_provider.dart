@@ -70,6 +70,64 @@ class ShopProvider extends ChangeNotifier {
     }
   }
 
+  Future<ShopModel?> updateShop({
+    required int shopId,
+    required String shopName,
+    required String ownerName,
+    required String phone,
+    required String address,
+    required int routeId,
+    required double latitude,
+    required double longitude,
+    required double creditLimit,
+  }) async {
+    isLoading = true;
+    notifyListeners();
+    try {
+      final response = await _dioClient.put(
+        '${ApiRoutes.createShopUrl}/$shopId',
+        data: {
+          "shop_name": shopName,
+          "owner_name": ownerName,
+          "phone": phone,
+          "address": address,
+          "route_id": routeId,
+          "latitude": latitude,
+          "longitude": longitude,
+          "credit_limit": creditLimit,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        ShopModel? updatedShop;
+        if (data is Map) {
+          if (data.containsKey('data') && data['data'] is Map) {
+            updatedShop = ShopModel.fromJson(data['data']);
+          } else {
+            updatedShop = ShopModel.fromJson(Map<String, dynamic>.from(data));
+          }
+        }
+        
+        if (updatedShop != null) {
+          final index = listShops.indexWhere((s) => s.id == shopId);
+          if (index != -1) {
+            listShops[index] = updatedShop;
+          }
+          notifyListeners();
+          return updatedShop;
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Update shop error: $e');
+      rethrow;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<List<ShopModel>> getTodayVisitedShops() async {
     isLoading = true;
     notifyListeners();

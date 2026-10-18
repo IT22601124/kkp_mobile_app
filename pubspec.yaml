@@ -51,6 +51,10 @@ dependencies:
   csv: ^6.0.0
   path_provider: ^2.1.5
   share_plus: ^10.1.0
+  map_launcher: ^7.0.0
+  geolocator: ^14.0.2
+  flutter_map: ^8.3.2
+  latlong2: ^0.10.1
 
 dependency_overrides:
   image: 4.0.17

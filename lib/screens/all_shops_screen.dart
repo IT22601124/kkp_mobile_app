@@ -451,6 +451,15 @@ class _AllShopsScreenState extends State<AllShopsScreen> {
                                               ),
                                               const SizedBox(width: 8),
                                               IconButton(
+                                                onPressed: () {
+                                                  RegisterShopBottomSheet.show(context, shopToEdit: shop);
+                                                },
+                                                icon: const Icon(Icons.edit_outlined, color: AppColors.cyanAccent, size: 20),
+                                                padding: EdgeInsets.zero,
+                                                constraints: const BoxConstraints(),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              IconButton(
                                                 onPressed: () => _deleteShop(shop.id, shop.shopName),
                                                 icon: const Icon(Icons.delete_outline, color: AppColors.roseDanger, size: 20),
                                                 padding: EdgeInsets.zero,
