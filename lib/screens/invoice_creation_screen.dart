@@ -492,6 +492,9 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                                   paidAmountController.text = totalAmount.toStringAsFixed(2);
                                 }
                               });
+                              if ((type == 'ONLINE' || type == 'SPLIT') && bankAccountProvider.listBankAccounts.isEmpty) {
+                                bankAccountProvider.getBankAccounts();
+                              }
                             },
                             child: Container(
                               margin: const EdgeInsets.symmetric(horizontal: 2),
@@ -873,8 +876,55 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                               Consumer<BankAccountProvider>(
                                 builder: (context, bankProvider, _) {
                                   final accounts = bankProvider.listBankAccounts;
+
+                                  if (bankProvider.isLoading) {
+                                    return const SizedBox(
+                                      height: 48,
+                                      child: Center(
+                                        child: CircularProgressIndicator(
+                                          color: AppColors.primaryOrange,
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                    );
+                                  }
+
+                                  if (accounts.isEmpty) {
+                                    return Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.amberWarning.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: AppColors.amberWarning.withValues(alpha: 0.5)),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.info_outline, color: AppColors.amberWarning, size: 16),
+                                          const SizedBox(width: 8),
+                                          const Expanded(
+                                            child: Text(
+                                              'No bank accounts loaded.',
+                                              style: TextStyle(fontSize: 11, color: AppColors.amberWarning, fontWeight: FontWeight.bold),
+                                            ),
+                                          ),
+                                          InkWell(
+                                            onTap: () => bankProvider.getBankAccounts(),
+                                            child: const Padding(
+                                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              child: Text('Reload', style: TextStyle(fontSize: 11, color: AppColors.primaryOrange, fontWeight: FontWeight.bold)),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }
+
+                                  final validSelectedId = accounts.any((b) => b.id == selectedBankAccountId)
+                                      ? selectedBankAccountId
+                                      : accounts.first.id;
+
                                   return DropdownButtonFormField<int>(
-                                    value: selectedBankAccountId,
+                                    value: validSelectedId,
                                     isExpanded: true,
                                     decoration: InputDecoration(
                                       labelText: 'Receiving Bank Account',

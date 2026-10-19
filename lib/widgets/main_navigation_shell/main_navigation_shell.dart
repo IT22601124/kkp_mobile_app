@@ -1,4 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../services/rep_notification_inbox.dart';
+import '../../services/notification_service.dart';
+import '../../screens/notifications_screen.dart';
 import 'package:kkp_rep_mobile_app/models/dsr_rep_profile.dart';
 
 import '../../models/dsr_models.dart';
@@ -28,7 +32,69 @@ class MainNavigationShell extends StatefulWidget {
   State<MainNavigationShell> createState() => _MainNavigationShellState();
 }
 
-class _MainNavigationShellState extends State<MainNavigationShell> {
+class _MainNavigationShellState extends State<MainNavigationShell>
+    with WidgetsBindingObserver {
+  final RepNotificationInbox _notificationInbox = RepNotificationInbox();
+  StreamSubscription<void>? _notificationSubscription;
+  Timer? _notificationTimer;
+  bool _inboxOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    NotificationService().inboxRequested.addListener(_handleInboxRequest);
+    _notificationSubscription = NotificationService().inboxUpdates.listen((_) {
+      _notificationInbox.refresh();
+    });
+    _notificationTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed &&
+          !_inboxOpen) {
+        _notificationInbox.refresh();
+      }
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _notificationInbox.refresh();
+      _handleInboxRequest();
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _notificationInbox.refresh();
+  }
+
+  void _handleInboxRequest() {
+    if (!mounted || !NotificationService().inboxRequested.value) return;
+    NotificationService().inboxRequested.value = false;
+    _openInbox();
+  }
+
+  Future<void> _openInbox() async {
+    if (_inboxOpen) {
+      _notificationInbox.refresh();
+      return;
+    }
+    _inboxOpen = true;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => NotificationsScreen(inbox: _notificationInbox),
+      ),
+    );
+    if (mounted) _inboxOpen = false;
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    NotificationService().inboxRequested.removeListener(_handleInboxRequest);
+    _notificationSubscription?.cancel();
+    _notificationTimer?.cancel();
+    _notificationInbox.dispose();
+    super.dispose();
+  }
+
   int _currentIndex = 0;
   Outlet? _selectedInvoiceOutlet;
 
@@ -149,6 +215,14 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             _buildDrawerTile(2, 'Shops & Credits', Icons.storefront_outlined),
             _buildDrawerTile(3, 'End of Day Trip', Icons.shield_outlined),
             _buildDrawerTile(4, 'Settings & Profile', Icons.settings_outlined),
+            ListTile(
+              leading: const Icon(Icons.notifications_outlined),
+              title: const Text('Notifications'),
+              onTap: () {
+                Navigator.pop(context);
+                _openInbox();
+              },
+            ),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.logout, color: AppColors.roseDanger),
@@ -171,9 +245,14 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         child: Column(
           children: [
             // Global Profile Header
-            ProfileHeaderWidget(
-              isDarkMode: widget.isDarkMode,
-              onToggleTheme: widget.onToggleTheme,
+            AnimatedBuilder(
+              animation: _notificationInbox,
+              builder: (context, _) => ProfileHeaderWidget(
+                isDarkMode: widget.isDarkMode,
+                onToggleTheme: widget.onToggleTheme,
+                unreadNotificationCount: _notificationInbox.unreadCount,
+                onNotificationsPressed: _openInbox,
+              ),
             ),
             Expanded(child: currentBody),
           ],
@@ -219,13 +298,13 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.35 : 0.08),
+              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
             if (isDark)
               BoxShadow(
-                color: AppColors.darkBg.withOpacity(0.08),
+                color: AppColors.darkBg.withValues(alpha: 0.08),
                 blurRadius: 12,
                 offset: const Offset(0, 2),
               ),
@@ -254,7 +333,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: AppColors.darkBg.withOpacity(0.4),
+                            color: AppColors.darkBg.withValues(alpha: 0.4),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),

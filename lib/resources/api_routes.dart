@@ -1,5 +1,6 @@
 class ApiRoutes {
-  static const String baseUrl = 'http://192.168.208.1:8000/api/v1/';
+  static const String notificationsUrl = 'mobile/notifications';
+  static const String baseUrl = 'http://172.29.160.1:8000/api/v1/';
   static const String loginUrl = 'mobile/rep/login';
   static const String checkTokenUrl = 'mobile/rep/check-token';
   static const String logoutUrl = 'mobile/rep/logout';

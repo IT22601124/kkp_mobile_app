@@ -7,11 +7,15 @@ import '../theme/app_theme.dart';
 class ProfileHeaderWidget extends StatefulWidget {
   final bool isDarkMode;
   final VoidCallback onToggleTheme;
+  final VoidCallback? onNotificationsPressed;
+  final int unreadNotificationCount;
 
   const ProfileHeaderWidget({
     super.key,
     required this.isDarkMode,
     required this.onToggleTheme,
+    this.onNotificationsPressed,
+    this.unreadNotificationCount = 0,
   });
 
   @override
@@ -82,13 +86,21 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
                                 userName,
                                 style: TextStyle(
                                   fontSize: 16,
-                                  color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
+                                  color: isDark
+                                      ? AppColors.darkTextMain
+                                      : AppColors.lightTextMain,
                                 ),
                               ),
                         const SizedBox(height: 2),
                         Row(
                           children: [
-                            Icon(Icons.location_on, size: 14,  color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain),
+                            Icon(
+                              Icons.location_on,
+                              size: 14,
+                              color: isDark
+                                  ? AppColors.darkTextMain
+                                  : AppColors.lightTextMain,
+                            ),
                             const SizedBox(width: 4),
                             _isLoading
                                 ? const SizedBox.shrink()
@@ -96,7 +108,9 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
                                     userSubtext,
                                     style: TextStyle(
                                       fontSize: 11,
-                                      color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
+                                      color: isDark
+                                          ? AppColors.darkTextMain
+                                          : AppColors.lightTextMain,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -112,45 +126,63 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
                   Stack(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.notifications_outlined, size: 28),
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('2 Pending notifications')),
-                          );
-                        },
-                        constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                        icon: const Icon(
+                          Icons.notifications_outlined,
+                          size: 28,
+                        ),
+                        tooltip: 'Notifications',
+                        onPressed: widget.onNotificationsPressed,
+                        constraints: const BoxConstraints(
+                          minWidth: 40,
+                          minHeight: 40,
+                        ),
                         padding: EdgeInsets.zero,
                       ),
-                      Positioned(
-                        right: 8,
-                        top: 8,
-                        child: Container(
-                          width: 16,
-                          height: 16,
-                          decoration: const BoxDecoration(
-                            color: AppColors.roseDanger,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Center(
-                            child: Text(
-                              '2',
-                              style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                      if (widget.unreadNotificationCount > 0)
+                        Positioned(
+                          right: 8,
+                          top: 8,
+                          child: Container(
+                            width: 22,
+                            height: 16,
+                            decoration: const BoxDecoration(
+                              color: AppColors.roseDanger,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: Text(
+                                widget.unreadNotificationCount > 99
+                                    ? '99+'
+                                    : '${widget.unreadNotificationCount}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                   const SizedBox(width: 2),
                   IconButton(
-                    icon: Icon(widget.isDarkMode ? Icons.wb_sunny_outlined : Icons.nightlight_round, size: 28),
+                    icon: Icon(
+                      widget.isDarkMode
+                          ? Icons.wb_sunny_outlined
+                          : Icons.nightlight_round,
+                      size: 28,
+                    ),
                     onPressed: widget.onToggleTheme,
-                    constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                    constraints: const BoxConstraints(
+                      minWidth: 40,
+                      minHeight: 40,
+                    ),
                     padding: EdgeInsets.zero,
                   ),
                   const SizedBox(width: 8),
                   GestureDetector(
-                    onTap: (){
+                    onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -170,18 +202,21 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
                       child: Center(
                         child: _isLoading
                             ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                        )
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
                             : Text(
-                          initial,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                                initial,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
                     ),
                   ),
