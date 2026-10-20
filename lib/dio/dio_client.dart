@@ -10,8 +10,8 @@ class DioClient {
     _dio = Dio(
       BaseOptions(
         baseUrl: ApiRoutes.baseUrl,
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 15),
+        connectTimeout: const Duration(seconds: 25),
+        receiveTimeout: const Duration(seconds: 25),
         responseType: ResponseType.json,
         headers: {
           'Content-Type': 'application/json',
