@@ -6,17 +6,11 @@ import 'package:kkp_rep_mobile_app/resources/api_routes.dart';
 class BankAccountProvider extends ChangeNotifier {
   bool isLoading = false;
   final DioClient _dioClient = DioClient();
-  List<BankAccountModel> listBankAccounts = BankAccountModel.defaultAccounts;
+  List<BankAccountModel> listBankAccounts = [];
   BankAccountModel? selectedBankAccount;
 
   BankAccountProvider() {
-    // Pre-select default account (Commercial Bank)
-    if (listBankAccounts.isNotEmpty) {
-      selectedBankAccount = listBankAccounts.firstWhere(
-        (b) => b.isDefault,
-        orElse: () => listBankAccounts.first,
-      );
-    }
+    // Initialized empty - will load real accounts from backend API
   }
 
   void selectAccount(BankAccountModel account) {
@@ -43,10 +37,17 @@ class BankAccountProvider extends ChangeNotifier {
         if (data is List) {
           accountsJson = data;
         } else if (data is Map) {
-          if (data.containsKey('data') && data['data'] is List) {
-            accountsJson = data['data'];
-          } else if (data.containsKey('accounts') && data['accounts'] is List) {
-            accountsJson = data['accounts'];
+          final target = data.containsKey('data') ? data['data'] : data;
+          if (target is List) {
+            accountsJson = target;
+          } else if (target is Map) {
+            if (target.containsKey('bank_accounts') && target['bank_accounts'] is List) {
+              accountsJson = target['bank_accounts'];
+            } else if (target.containsKey('accounts') && target['accounts'] is List) {
+              accountsJson = target['accounts'];
+            } else if (target.isNotEmpty && (target.containsKey('id') || target.containsKey('bank_name') || target.containsKey('account_number'))) {
+              accountsJson = [target];
+            }
           }
         }
 
@@ -76,10 +77,8 @@ class BankAccountProvider extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Failed to load bank accounts from API, using default 4 accounts: $e');
-      if (listBankAccounts.isEmpty) {
-        listBankAccounts = BankAccountModel.defaultAccounts;
-        selectedBankAccount = listBankAccounts.first;
-      }
+      // Keep empty if API failed to prevent invalid IDs
+      selectedBankAccount = null;
     } finally {
       isLoading = false;
       notifyListeners();

@@ -43,43 +43,6 @@ class BankAccountModel {
     };
   }
 
-  /// Default 4 Real Agent Bank Accounts fallback
-  static List<BankAccountModel> get defaultAccounts => [
-    BankAccountModel(
-      id: 34,
-      bankName: 'Commercial Bank of Ceylon',
-      accountNumber: '1000293847',
-      accountName: 'KKP Hutchison Telecommunications Agency - Main',
-      branchName: 'Colombo Fort',
-      isDefault: true,
-      currentBalance: 150000.0,
-    ),
-    BankAccountModel(
-      id: 35,
-      bankName: 'Sampath Bank',
-      accountNumber: '002910004567',
-      accountName: 'KKP Hutchison Agency - Collections',
-      branchName: 'City Office Branch',
-      isDefault: false,
-      currentBalance: 100000.0,
-    ),
-    BankAccountModel(
-      id: 36,
-      bankName: 'Bank of Ceylon (BOC)',
-      accountNumber: '000876543201',
-      accountName: 'KKP Hutchison Agency - Revenue',
-      branchName: 'Corporate Branch',
-      isDefault: false,
-      currentBalance: 75000.0,
-    ),
-    BankAccountModel(
-      id: 38,
-      bankName: 'Hatton National Bank (HNB)',
-      accountNumber: '009823456789',
-      accountName: 'KKP Hutchison Agency - Field Settlement',
-      branchName: 'Head Office Branch',
-      isDefault: false,
-      currentBalance: 50000.0,
-    ),
-  ];
+  /// No dummy accounts - all bank accounts must come from the live API
+  static List<BankAccountModel> get defaultAccounts => [];
 }
