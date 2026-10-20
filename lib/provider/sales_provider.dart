@@ -6,6 +6,36 @@ class SalesProvider extends ChangeNotifier {
   bool isLoading = false;
   final DioClient _dioClient = DioClient();
   Map<String, dynamic>? lastCreatedSale;
+  List<Map<String, dynamic>> listSales = [];
+  String? _salesStartDate;
+  String? _salesEndDate;
+  bool _hasLoadedSales = false;
+
+  bool hasLoadedSales({String? startDate, String? endDate}) {
+    return _hasLoadedSales &&
+        _salesStartDate == startDate &&
+        _salesEndDate == endDate;
+  }
+
+  List<Map<String, dynamic>> salesForRange({
+    String? startDate,
+    String? endDate,
+  }) {
+    if (!hasLoadedSales(startDate: startDate, endDate: endDate)) {
+      return const [];
+    }
+    return listSales;
+  }
+
+  Future<List<Map<String, dynamic>>> loadSalesIfNeeded({
+    String? startDate,
+    String? endDate,
+  }) {
+    if (hasLoadedSales(startDate: startDate, endDate: endDate)) {
+      return Future.value(listSales);
+    }
+    return getSales(startDate: startDate, endDate: endDate);
+  }
 
   Future<Map<String, dynamic>?> createSale({
     required int shopId,
@@ -29,12 +59,13 @@ class SalesProvider extends ChangeNotifier {
     try {
       final payload = <String, dynamic>{
         'shop_id': shopId,
-        if (branchId != null) 'branch_id': branchId,
-        if (dsrTripId != null) 'dsr_trip_id': dsrTripId,
+        'branch_id': ?branchId,
+        'dsr_trip_id': ?dsrTripId,
         'sale_date': saleDate ?? DateTime.now().toString().split('.').first,
         'payment_type': paymentType,
-        if (bankAccountId != null) 'bank_account_id': bankAccountId,
-        if (referenceNumber != null && referenceNumber.isNotEmpty) 'reference_number': referenceNumber,
+        'bank_account_id': ?bankAccountId,
+        if (referenceNumber != null && referenceNumber.isNotEmpty)
+          'reference_number': referenceNumber,
         if (bankSlip != null && bankSlip.isNotEmpty) 'bank_slip': bankSlip,
         'status': status,
         'discount': discount,
@@ -47,20 +78,20 @@ class SalesProvider extends ChangeNotifier {
 
       debugPrint('Creating sale with payload: $payload');
 
-      final response = await _dioClient.post(
-        ApiRoutes.salesUrl,
-        data: payload,
-      );
+      final response = await _dioClient.post(ApiRoutes.salesUrl, data: payload);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = response.data;
+        Map<String, dynamic>? createdSale;
         if (data is Map) {
           if (data.containsKey('data') && data['data'] is Map) {
-            lastCreatedSale = Map<String, dynamic>.from(data['data']);
+            createdSale = Map<String, dynamic>.from(data['data']);
           } else {
-            lastCreatedSale = Map<String, dynamic>.from(data);
+            createdSale = Map<String, dynamic>.from(data);
           }
         }
+        lastCreatedSale = {...payload, ...?createdSale};
+        _addCreatedSaleToLoadedRange();
         notifyListeners();
         return lastCreatedSale;
       }
@@ -74,7 +105,10 @@ class SalesProvider extends ChangeNotifier {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getSales({String? startDate, String? endDate}) async {
+  Future<List<Map<String, dynamic>>> getSales({
+    String? startDate,
+    String? endDate,
+  }) async {
     isLoading = true;
     notifyListeners();
     try {
@@ -82,7 +116,10 @@ class SalesProvider extends ChangeNotifier {
       if (startDate != null) queryParams['start_date'] = startDate;
       if (endDate != null) queryParams['end_date'] = endDate;
 
-      final response = await _dioClient.get(ApiRoutes.salesUrl, queryParameters: queryParams);
+      final response = await _dioClient.get(
+        ApiRoutes.salesUrl,
+        queryParameters: queryParams,
+      );
       if (response.statusCode == 200) {
         final data = response.data;
         List<dynamic> salesJson = [];
@@ -90,14 +127,20 @@ class SalesProvider extends ChangeNotifier {
           final target = data.containsKey('data') ? data['data'] : data;
           if (target is List) {
             salesJson = target;
-          } else if (target is Map && target.containsKey('data')) { // Handle paginated response
+          } else if (target is Map && target.containsKey('data')) {
+            // Handle paginated response
             salesJson = target['data'];
           }
         } else if (data is List) {
           salesJson = data;
         }
 
-        return salesJson.map((s) => Map<String, dynamic>.from(s)).toList();
+        listSales = salesJson.map((s) => Map<String, dynamic>.from(s)).toList();
+        _salesStartDate = startDate;
+        _salesEndDate = endDate;
+        _hasLoadedSales = true;
+        notifyListeners();
+        return listSales;
       }
       return [];
     } catch (e) {
@@ -109,11 +152,34 @@ class SalesProvider extends ChangeNotifier {
     }
   }
 
+  void _addCreatedSaleToLoadedRange() {
+    final sale = lastCreatedSale;
+    if (!_hasLoadedSales || sale == null) return;
+
+    final rawDate = (sale['sale_date'] ?? sale['created_at'])?.toString();
+    final saleDate = rawDate?.split('T').first;
+    if (saleDate == null || saleDate.isEmpty) return;
+    if (_salesStartDate != null && saleDate.compareTo(_salesStartDate!) < 0) {
+      return;
+    }
+    if (_salesEndDate != null && saleDate.compareTo(_salesEndDate!) > 0) {
+      return;
+    }
+
+    final createdId = sale['id'];
+    if (createdId != null) {
+      listSales.removeWhere((entry) => entry['id'] == createdId);
+    }
+    listSales.insert(0, Map<String, dynamic>.from(sale));
+  }
+
   Future<List<Map<String, dynamic>>> getShopCreditSales(int shopId) async {
     isLoading = true;
     notifyListeners();
     try {
-      final response = await _dioClient.get('${ApiRoutes.shopCreditSalesUrl}/$shopId/credit-sales');
+      final response = await _dioClient.get(
+        '${ApiRoutes.shopCreditSalesUrl}/$shopId/credit-sales',
+      );
       if (response.statusCode == 200) {
         final data = response.data;
         List<dynamic> salesJson = [];
@@ -162,7 +228,9 @@ class SalesProvider extends ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>?> submitDailySettlement(Map<String, dynamic> payload) async {
+  Future<Map<String, dynamic>?> submitDailySettlement(
+    Map<String, dynamic> payload,
+  ) async {
     isLoading = true;
     notifyListeners();
     try {

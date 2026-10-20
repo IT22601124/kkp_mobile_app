@@ -54,6 +54,7 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
           final userName = user?.name ?? 'DSR Rep';
           final initial = userName.isNotEmpty ? userName[0].toUpperCase() : 'R';
           final userSubtext = user?.phone ?? '0787450360';
+          final avatarUrl = user?.avatarUrl?.trim();
 
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -194,22 +195,41 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
                       );
                     },
                     child: Container(
-                      padding: const EdgeInsets.all(12),
+                      width: 48,
+                      height: 48,
+                      clipBehavior: Clip.antiAlias,
                       decoration: BoxDecoration(
                         color: AppColors.primaryOrange,
                         shape: BoxShape.circle,
                       ),
-                      child: Center(
-                        child: _isLoading
-                            ? const SizedBox(
+                      child: _isLoading
+                          ? const Center(
+                              child: SizedBox(
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   color: Colors.white,
                                   strokeWidth: 2,
                                 ),
-                              )
-                            : Text(
+                              ),
+                            )
+                          : avatarUrl != null && avatarUrl.isNotEmpty
+                          ? Image.network(
+                              avatarUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => Center(
+                                child: Text(
+                                  initial,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : Center(
+                              child: Text(
                                 initial,
                                 style: const TextStyle(
                                   color: Colors.white,
@@ -217,7 +237,7 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                      ),
+                            ),
                     ),
                   ),
                 ],
