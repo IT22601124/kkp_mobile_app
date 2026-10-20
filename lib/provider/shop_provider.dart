@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:kkp_rep_mobile_app/dio/dio_client.dart';
 import 'package:kkp_rep_mobile_app/models/route_model.dart';
@@ -13,6 +13,36 @@ class ShopProvider extends ChangeNotifier {
   List<ShopModel> todayVisitedShops = [];
   List<ShopModel> creditShops = [];
   List<RouteModel> listRoutes = [];
+  bool _hasLoadedRouteShops = false;
+  bool _hasLoadedTodayVisitedShops = false;
+  String? _visitedShopsDate;
+
+  bool get hasLoadedRouteShops => _hasLoadedRouteShops;
+  bool get hasLoadedTodayVisitedShops =>
+      _hasLoadedTodayVisitedShops && _visitedShopsDate == _todayKey;
+
+  String get _todayKey {
+    final now = DateTime.now();
+    return DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).toIso8601String().split('T').first;
+  }
+
+  Future<List<ShopModel>> loadRouteShopsIfNeeded({int? routeId}) {
+    if (_hasLoadedRouteShops && routeId == null) {
+      return Future.value(listShops);
+    }
+    return getShopsByRoute(routeId: routeId);
+  }
+
+  Future<List<ShopModel>> loadTodayVisitedShopsIfNeeded() {
+    if (hasLoadedTodayVisitedShops) {
+      return Future.value(todayVisitedShops);
+    }
+    return getTodayVisitedShops();
+  }
 
   Future<ShopModel?> createShop({
     required String shopName,
@@ -53,7 +83,7 @@ class ShopProvider extends ChangeNotifier {
             newShop = ShopModel.fromJson(Map<String, dynamic>.from(data));
           }
         }
-        
+
         if (newShop != null) {
           listShops.insert(0, newShop);
           notifyListeners();
@@ -108,7 +138,7 @@ class ShopProvider extends ChangeNotifier {
             updatedShop = ShopModel.fromJson(Map<String, dynamic>.from(data));
           }
         }
-        
+
         if (updatedShop != null) {
           final index = listShops.indexWhere((s) => s.id == shopId);
           if (index != -1) {
@@ -150,6 +180,8 @@ class ShopProvider extends ChangeNotifier {
         todayVisitedShops = shopsJson
             .map((json) => ShopModel.fromJson(Map<String, dynamic>.from(json)))
             .toList();
+        _hasLoadedTodayVisitedShops = true;
+        _visitedShopsDate = _todayKey;
 
         debugPrint('Fetched ${todayVisitedShops.length} today visited shops');
         notifyListeners();
@@ -202,7 +234,10 @@ class ShopProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> settleCredit({required int shopId, required double amount}) async {
+  Future<bool> settleCredit({
+    required int shopId,
+    required double amount,
+  }) async {
     isLoading = true;
     notifyListeners();
     try {
@@ -246,7 +281,11 @@ class ShopProvider extends ChangeNotifier {
           } else if (target is Map) {
             if (target.containsKey('shops') && target['shops'] is List) {
               shopsJson = target['shops'];
-            } else if (target.isNotEmpty && (target.containsKey('id') || target.containsKey('shop_name') || target.containsKey('shop_code') || target.containsKey('shopName'))) {
+            } else if (target.isNotEmpty &&
+                (target.containsKey('id') ||
+                    target.containsKey('shop_name') ||
+                    target.containsKey('shop_code') ||
+                    target.containsKey('shopName'))) {
               shopsJson = [target];
             }
           }
@@ -257,6 +296,7 @@ class ShopProvider extends ChangeNotifier {
         listShops = shopsJson
             .map((json) => ShopModel.fromJson(Map<String, dynamic>.from(json)))
             .toList();
+        _hasLoadedRouteShops = routeId == null;
 
         notifyListeners();
         return listShops;
@@ -265,10 +305,15 @@ class ShopProvider extends ChangeNotifier {
     } on DioException catch (e) {
       final resData = e.response?.data;
       if (e.response?.statusCode == 422 ||
-          (resData is Map && (resData['message']?.toString().contains('assigned route') ?? false))) {
-        routeErrorMessage = 'You are not assigned to a route, please contact admin';
+          (resData is Map &&
+              (resData['message']?.toString().contains('assigned route') ??
+                  false))) {
+        routeErrorMessage =
+            'You are not assigned to a route, please contact admin';
         debugPrint('Route error: $routeErrorMessage');
-        throw Exception('You are not assigned to a route, please contact admin');
+        throw Exception(
+          'You are not assigned to a route, please contact admin',
+        );
       }
       debugPrint('Error fetching shops by route: $e');
       return listShops;
@@ -321,8 +366,10 @@ class ShopProvider extends ChangeNotifier {
     isLoading = true;
     notifyListeners();
     try {
-      final response = await _dioClient.delete('${ApiRoutes.deleteShopUrl}/$id');
-      
+      final response = await _dioClient.delete(
+        '${ApiRoutes.deleteShopUrl}/$id',
+      );
+
       if (response.statusCode == 200) {
         listShops.removeWhere((shop) => shop.id == id);
         notifyListeners();

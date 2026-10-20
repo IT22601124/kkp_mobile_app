@@ -12,6 +12,21 @@ class ItemProvider extends ChangeNotifier {
   List<RepStockModel> listRepStocks = [];
   List<dynamic> listStockRequests = [];
   List<BranchStockModel> listBranchStocks = [];
+  int? _repStocksRepId;
+  bool _hasLoadedRepStocks = false;
+
+  int? get repStocksRepId => _repStocksRepId;
+
+  bool hasLoadedRepStocksFor(int repId) {
+    return _hasLoadedRepStocks && _repStocksRepId == repId;
+  }
+
+  Future<List<RepStockModel>> loadRepStocksIfNeeded(int repId) {
+    if (hasLoadedRepStocksFor(repId)) {
+      return Future.value(listRepStocks);
+    }
+    return getRepStocks(repId);
+  }
 
   Future<List<ItemModel>> getItems() async {
     isLoading = true;
@@ -35,9 +50,13 @@ class ItemProvider extends ChangeNotifier {
             final nestedData = data['data'];
             if (nestedData is List) {
               itemsJson = nestedData;
-            } else if (nestedData is Map && nestedData.containsKey('items') && nestedData['items'] is List) {
+            } else if (nestedData is Map &&
+                nestedData.containsKey('items') &&
+                nestedData['items'] is List) {
               itemsJson = nestedData['items'];
-            } else if (nestedData is Map && nestedData.containsKey('products') && nestedData['products'] is List) {
+            } else if (nestedData is Map &&
+                nestedData.containsKey('products') &&
+                nestedData['products'] is List) {
               itemsJson = nestedData['products'];
             }
           } else if (data.containsKey('items') && data['items'] is List) {
@@ -83,6 +102,13 @@ class ItemProvider extends ChangeNotifier {
       debugPrint('getRepStocks skipped: invalid repId $repId');
       return listRepStocks;
     }
+
+    if (_repStocksRepId != repId) {
+      _repStocksRepId = repId;
+      _hasLoadedRepStocks = false;
+      listRepStocks = [];
+    }
+
     isLoading = true;
     notifyListeners();
     try {
@@ -122,7 +148,10 @@ class ItemProvider extends ChangeNotifier {
         }
 
         listRepStocks = parsedStocks;
-        debugPrint('Fetched ${listRepStocks.length} flattened rep stock items for rep #$repId');
+        _hasLoadedRepStocks = true;
+        debugPrint(
+          'Fetched ${listRepStocks.length} flattened rep stock items for rep #$repId',
+        );
         notifyListeners();
         return listRepStocks;
       }
