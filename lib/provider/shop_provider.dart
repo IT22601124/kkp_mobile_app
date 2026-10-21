@@ -1,3 +1,4 @@
+import 'session_notifier.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:kkp_rep_mobile_app/dio/dio_client.dart';
@@ -5,7 +6,7 @@ import 'package:kkp_rep_mobile_app/models/route_model.dart';
 import 'package:kkp_rep_mobile_app/models/shop_model.dart';
 import 'package:kkp_rep_mobile_app/resources/api_routes.dart';
 
-class ShopProvider extends ChangeNotifier {
+class ShopProvider extends SessionNotifier {
   bool isLoading = false;
   String? routeErrorMessage;
   final DioClient _dioClient = DioClient();

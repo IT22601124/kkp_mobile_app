@@ -34,13 +34,7 @@ void main() async {
 
   runApp(
     MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => ShopProvider()),
-        ChangeNotifierProvider(create: (_) => ItemProvider()),
-        ChangeNotifierProvider(create: (_) => SalesProvider()),
-        ChangeNotifierProvider(create: (_) => BankAccountProvider()),
-      ],
+      providers: [ChangeNotifierProvider(create: (_) => AuthProvider())],
       child: const DsrRepMobileApp(),
     ),
   );
@@ -57,7 +51,6 @@ class _DsrRepMobileAppState extends State<DsrRepMobileApp> {
   bool _isDarkMode = true;
   bool _isLoggedIn = false;
   bool _showSplash = true;
-  final AuthProvider _authProvider = AuthProvider();
 
   void _toggleTheme() {
     setState(() => _isDarkMode = !_isDarkMode);
@@ -79,17 +72,31 @@ class _DsrRepMobileAppState extends State<DsrRepMobileApp> {
               }),
             )
           : (_isLoggedIn
-              ? MainNavigationShell(
-                  isDarkMode: _isDarkMode,
-                  onToggleTheme: _toggleTheme,
-                  onLogout: () async {
-                    await _authProvider.logout();
-                    setState(() => _isLoggedIn = false);
-                  },
-                )
-              : LoginScreen(
-                  onLoginSuccess: () => setState(() => _isLoggedIn = true),
-                )),
+                ? MultiProvider(
+                    key: ValueKey(
+                      context.watch<AuthProvider>().sessionRevision,
+                    ),
+                    providers: [
+                      ChangeNotifierProvider(create: (_) => ShopProvider()),
+                      ChangeNotifierProvider(create: (_) => ItemProvider()),
+                      ChangeNotifierProvider(create: (_) => SalesProvider()),
+                      ChangeNotifierProvider(
+                        create: (_) => BankAccountProvider(),
+                      ),
+                    ],
+                    child: MainNavigationShell(
+                      isDarkMode: _isDarkMode,
+                      onToggleTheme: _toggleTheme,
+                      onLogout: () async {
+                        await context.read<AuthProvider>().logout();
+                        if (!mounted) return;
+                        setState(() => _isLoggedIn = false);
+                      },
+                    ),
+                  )
+                : LoginScreen(
+                    onLoginSuccess: () => setState(() => _isLoggedIn = true),
+                  )),
     );
   }
 }

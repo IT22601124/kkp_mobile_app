@@ -1,3 +1,4 @@
+import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import '../provider/auth_provider.dart';
@@ -7,20 +8,17 @@ import '../theme/app_theme.dart';
 class SplashScreen extends StatefulWidget {
   final Function(bool isLoggedIn) onInitializationComplete;
 
-  const SplashScreen({
-    super.key,
-    required this.onInitializationComplete,
-  });
+  const SplashScreen({super.key, required this.onInitializationComplete});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
-  final AuthProvider _authProvider = AuthProvider();
   String _statusMessage = 'Initializing application...';
   bool _hasConnectionError = false;
 
@@ -57,21 +55,26 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       _statusMessage = 'Checking server health...';
     });
 
+    final authProvider = context.read<AuthProvider>();
     final startTime = DateTime.now();
     bool isLoggedIn = false;
 
     try {
       // 1. Execute health check FIRST before checking token or other APIs
-      await _authProvider.checkHealth();
+      await authProvider.checkHealth();
 
       // 2. If server health check passes, then check saved token
-      isLoggedIn = await _authProvider.checkSavedToken();
+      isLoggedIn = await authProvider.checkSavedToken();
 
+      if (!mounted) return;
       setState(() {
         _hasConnectionError = false;
-        _statusMessage = isLoggedIn ? 'Session active! Loading dashboard...' : 'Server online! Please login...';
+        _statusMessage = isLoggedIn
+            ? 'Session active! Loading dashboard...'
+            : 'Server online! Please login...';
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _hasConnectionError = true;
         _statusMessage = 'Connection Problem: Unable to reach server';
@@ -119,7 +122,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     decoration: BoxDecoration(
                       color: isDark ? AppColors.darkCard : AppColors.lightCard,
                       borderRadius: BorderRadius.circular(30),
-                      border: Border.all(color: AppColors.primaryOrange.withOpacity(0.3), width: 2),
+                      border: Border.all(
+                        color: AppColors.primaryOrange.withOpacity(0.3),
+                        width: 2,
+                      ),
                       boxShadow: [
                         BoxShadow(
                           color: AppColors.primaryOrange.withOpacity(0.25),
@@ -140,7 +146,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
+                      color: isDark
+                          ? AppColors.darkTextMain
+                          : AppColors.lightTextMain,
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -150,7 +158,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     'Van Sales & Distribution System',
                     style: TextStyle(
                       fontSize: 14,
-                      color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub,
+                      color: isDark
+                          ? AppColors.darkTextSub
+                          : AppColors.lightTextSub,
                       letterSpacing: 0.3,
                     ),
                   ),
@@ -170,7 +180,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                           const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.wifi_off_rounded, color: AppColors.roseDanger, size: 24),
+                              Icon(
+                                Icons.wifi_off_rounded,
+                                color: AppColors.roseDanger,
+                                size: 24,
+                              ),
                               SizedBox(width: 8),
                               Text(
                                 'Connection Problem',
@@ -188,7 +202,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 12,
-                              color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub,
+                              color: isDark
+                                  ? AppColors.darkTextSub
+                                  : AppColors.lightTextSub,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -201,20 +217,32 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                                   label: const Text('RETRY'),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.primaryOrange,
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
                                   ),
                                 ),
                               ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: OutlinedButton(
-                                  onPressed: () => widget.onInitializationComplete(false),
+                                  onPressed: () =>
+                                      widget.onInitializationComplete(false),
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: AppColors.cyanAccent,
-                                    side: const BorderSide(color: AppColors.cyanAccent),
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    side: const BorderSide(
+                                      color: AppColors.cyanAccent,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
                                   ),
-                                  child: const Text('PROCEED OFFLINE', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  child: const Text(
+                                    'PROCEED OFFLINE',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
@@ -236,7 +264,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       _statusMessage,
                       style: TextStyle(
                         fontSize: 12,
-                        color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub,
+                        color: isDark
+                            ? AppColors.darkTextSub
+                            : AppColors.lightTextSub,
                       ),
                     ),
                   ],
@@ -249,11 +279,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Text(
-          'Version 1.0.0 • Sundaram Multi-Brand',
+          'Version 1.0.0 â€¢ Sundaram Multi-Brand',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 11,
-            color: (isDark ? AppColors.darkTextSub : AppColors.lightTextSub).withOpacity(0.6),
+            color: (isDark ? AppColors.darkTextSub : AppColors.lightTextSub)
+                .withOpacity(0.6),
           ),
         ),
       ),

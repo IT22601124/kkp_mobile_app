@@ -4,7 +4,9 @@ import '../resources/api_routes.dart';
 
 class DioClient {
   late final Dio _dio;
-  String? _authToken;
+  static String? _authToken;
+  static bool _tokenLoaded = false;
+  static int _sessionVersion = 0;
 
   DioClient() {
     _dio = Dio(
@@ -23,18 +25,47 @@ class DioClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          if (_authToken == null || _authToken!.isEmpty) {
-            try {
-              final prefs = await SharedPreferences.getInstance();
+          if (!_tokenLoaded) {
+            final prefs = await SharedPreferences.getInstance();
+            // A login/logout during preference loading takes precedence.
+            if (!_tokenLoaded) {
               _authToken = prefs.getString('auth_token');
-            } catch (e) {
-              // ignore
+              _tokenLoaded = true;
             }
           }
+          final uri = Uri.tryParse(ApiRoutes.baseUrl);
+          if (uri == null ||
+              !uri.hasAuthority ||
+              (uri.scheme != 'http' && uri.scheme != 'https') ||
+              (const bool.fromEnvironment('dart.vm.product') &&
+                  uri.scheme != 'https')) {
+            return handler.reject(
+              DioException(
+                requestOptions: options,
+                error:
+                    'A valid HTTPS server address is required for release builds.',
+              ),
+            );
+          }
+          options.extra['sessionVersion'] = _sessionVersion;
+          options.headers.remove('Authorization');
           if (_authToken != null && _authToken!.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $_authToken';
           }
           return handler.next(options);
+        },
+        onResponse: (response, handler) {
+          if (response.requestOptions.extra['sessionVersion'] !=
+              _sessionVersion) {
+            return handler.reject(
+              DioException(
+                requestOptions: response.requestOptions,
+                type: DioExceptionType.cancel,
+                error: 'Session changed while the request was running.',
+              ),
+            );
+          }
+          handler.next(response);
         },
         onError: (DioException error, handler) {
           // Handle global errors here (e.g., 401 unauthorized, 500 server error)
@@ -42,24 +73,18 @@ class DioClient {
         },
       ),
     );
-
-    _dio.interceptors.add(
-      LogInterceptor(
-        request: true,
-        requestBody: true,
-        responseBody: true,
-        responseHeader: false,
-        error: true,
-      ),
-    );
   }
 
   void setAuthToken(String token) {
+    if (_authToken != token) _sessionVersion++;
     _authToken = token;
+    _tokenLoaded = true;
   }
 
   void clearAuthToken() {
+    _sessionVersion++;
     _authToken = null;
+    _tokenLoaded = true;
   }
 
   Dio get dio => _dio;

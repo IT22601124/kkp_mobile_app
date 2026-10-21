@@ -1,8 +1,9 @@
+import 'session_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:kkp_rep_mobile_app/dio/dio_client.dart';
 import 'package:kkp_rep_mobile_app/resources/api_routes.dart';
 
-class SalesProvider extends ChangeNotifier {
+class SalesProvider extends SessionNotifier {
   bool isLoading = false;
   final DioClient _dioClient = DioClient();
   Map<String, dynamic>? lastCreatedSale;
@@ -75,8 +76,6 @@ class SalesProvider extends ChangeNotifier {
         'items': items,
         if (payments != null && payments.isNotEmpty) 'payments': payments,
       };
-
-      debugPrint('Creating sale with payload: $payload');
 
       final response = await _dioClient.post(ApiRoutes.salesUrl, data: payload);
 

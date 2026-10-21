@@ -1251,9 +1251,15 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                                       return;
                                     }
 
+                                    if (paidAmount < 0 || paidAmount > totalAmount) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Payment must be between zero and the invoice total.')),
+                                      );
+                                      return;
+                                    }
                                     final itemsPayload = _cartItems.map((c) {
                                       return {
-                                        'item_id': c['id'] ?? 1,
+                                        'item_id': c['id'],
                                         'quantity': c['qty'] as int,
                                         'unit_price': c['unitPrice'] as double,
                                         'discount': 0.0,
@@ -1295,6 +1301,13 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                                             refNo: paymentType == 'ONLINE' ? bankRefController.text : null,
                                           );
                                           _clearCart();
+                                          final repId = context.read<AuthProvider>().user?.id;
+                                          if (repId != null) {
+                                            await context.read<ItemProvider>().getRepStocks(repId);
+                                          }
+                                          if (context.mounted) {
+                                            await context.read<ShopProvider>().getTodayVisitedShops();
+                                          }
                                         }
                                       }
                                     } catch (e) {
