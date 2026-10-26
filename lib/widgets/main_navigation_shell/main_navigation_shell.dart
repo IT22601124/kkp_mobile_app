@@ -235,7 +235,44 @@ class _MainNavigationShellState extends State<MainNavigationShell>
               ),
               onTap: () {
                 Navigator.pop(context);
-                widget.onLogout();
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    title: const Row(
+                      children: [
+                        Icon(Icons.logout, color: AppColors.roseDanger),
+                        SizedBox(width: 8),
+                        Text(
+                          'Confirm Logout',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    content: const Text(
+                      'Are you sure you want to log out of your account?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Cancel'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          widget.onLogout();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.roseDanger,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Log Out'),
+                      ),
+                    ],
+                  ),
+                );
               },
             ),
           ],
@@ -244,16 +281,6 @@ class _MainNavigationShellState extends State<MainNavigationShell>
       body: SafeArea(
         child: Column(
           children: [
-            // Global Profile Header
-            AnimatedBuilder(
-              animation: _notificationInbox,
-              builder: (context, _) => ProfileHeaderWidget(
-                isDarkMode: widget.isDarkMode,
-                onToggleTheme: widget.onToggleTheme,
-                unreadNotificationCount: _notificationInbox.unreadCount,
-                onNotificationsPressed: _openInbox,
-              ),
-            ),
             Expanded(child: currentBody),
           ],
         ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:kkp_rep_mobile_app/provider/auth_provider.dart';
 import 'package:kkp_rep_mobile_app/provider/shop_provider.dart';
@@ -13,6 +14,7 @@ import 'package:kkp_rep_mobile_app/widgets/main_navigation_shell/main_navigation
 import 'theme/app_theme.dart';
 
 import 'screens/splash_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'screens/login_screen.dart';
 
 @pragma('vm:entry-point')
@@ -51,6 +53,23 @@ class _DsrRepMobileAppState extends State<DsrRepMobileApp> {
   bool _isDarkMode = true;
   bool _isLoggedIn = false;
   bool _showSplash = true;
+  bool _showOnboarding = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkOnboardingState();
+  }
+
+  Future<void> _checkOnboardingState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final seen = prefs.getBool('onboarding_seen') ?? false;
+    if (mounted) {
+      setState(() {
+        _showOnboarding = !seen;
+      });
+    }
+  }
 
   void _toggleTheme() {
     setState(() => _isDarkMode = !_isDarkMode);
@@ -79,19 +98,26 @@ class _DsrRepMobileAppState extends State<DsrRepMobileApp> {
                   _isLoggedIn = isLoggedIn;
                 }),
               )
-            : (_isLoggedIn
-                  ? MainNavigationShell(
-                      isDarkMode: _isDarkMode,
-                      onToggleTheme: _toggleTheme,
-                      onLogout: () async {
-                        await context.read<AuthProvider>().logout();
-                        if (!mounted) return;
-                        setState(() => _isLoggedIn = false);
-                      },
+            : (_showOnboarding
+                  ? OnboardingScreen(
+                      onOnboardingComplete: () => setState(() {
+                        _showOnboarding = false;
+                      }),
                     )
-                  : LoginScreen(
-                      onLoginSuccess: () => setState(() => _isLoggedIn = true),
-                    )),
+                  : (_isLoggedIn
+                        ? MainNavigationShell(
+                            isDarkMode: _isDarkMode,
+                            onToggleTheme: _toggleTheme,
+                            onLogout: () async {
+                              await context.read<AuthProvider>().logout();
+                              if (!mounted) return;
+                              setState(() => _isLoggedIn = false);
+                            },
+                          )
+                        : LoginScreen(
+                            onLoginSuccess: () =>
+                                setState(() => _isLoggedIn = true),
+                          ))),
       ),
     );
   }

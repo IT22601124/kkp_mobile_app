@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
 import '../dio/dio_client.dart';
 import '../models/branch_stock_model.dart';
@@ -329,7 +330,11 @@ class _RequestStockScreenState extends State<RequestStockScreen> {
       ),
       body: SafeArea(
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: AppColors.cyanAccent))
+            ?  Center(child:
+        LoadingAnimationWidget.hexagonDots(
+          color: AppColors.primaryOrange,
+          size: 38,
+        ))
             : SingleChildScrollView(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(

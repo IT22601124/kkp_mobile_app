@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/dsr_models.dart';
@@ -148,7 +149,12 @@ Thank you for your business!
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => const Center(child: CircularProgressIndicator()),
+      builder: (ctx) =>  Center(child:
+      LoadingAnimationWidget.hexagonDots(
+        color: AppColors.primaryOrange,
+        size: 38,
+      ),
+      ),
     );
 
     try {
@@ -393,8 +399,11 @@ Thank you for your business!
               // Outlets List or Empty State
               Expanded(
                 child: shopProvider.isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(color: AppColors.primaryOrange),
+                    ?  Center(
+                        child: LoadingAnimationWidget.hexagonDots(
+                          color: AppColors.primaryOrange,
+                          size: 38,
+                        ),
                       )
                     : filteredOutlets.isEmpty
                         ? Center(

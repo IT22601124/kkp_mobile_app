@@ -83,12 +83,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
+                color: isDark
+                    ? AppColors.darkTextMain
+                    : AppColors.lightTextMain,
               ),
             ),
             const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(Icons.photo_library, color: AppColors.primaryOrange),
+              leading: const Icon(
+                Icons.photo_library,
+                color: AppColors.primaryOrange,
+              ),
               title: const Text('Choose from Gallery'),
               onTap: () {
                 Navigator.pop(ctx);
@@ -96,7 +101,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.camera_alt, color: AppColors.cyanAccent),
+              leading: const Icon(
+                Icons.camera_alt,
+                color: AppColors.cyanAccent,
+              ),
               title: const Text('Take a Photo'),
               onTap: () {
                 Navigator.pop(ctx);
@@ -113,13 +121,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final user = context.watch<AuthProvider>().user;
-    final name = user?.name.isNotEmpty == true ? user!.name : 'DSR Representative';
+    final name = user?.name.isNotEmpty == true
+        ? user!.name
+        : 'DSR Representative';
     final initial = name.isNotEmpty ? name[0].toUpperCase() : 'U';
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
       appBar: AppBar(
-        title: const Text('User Profile', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text(
+          'User Profile',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
         centerTitle: true,
         backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
         elevation: 0,
@@ -151,7 +164,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             offset: const Offset(0, 6),
                           ),
                         ],
-                        image: user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty
+                        image:
+                            user?.avatarUrl != null &&
+                                user!.avatarUrl!.isNotEmpty
                             ? DecorationImage(
                                 image: NetworkImage(user.avatarUrl!),
                                 fit: BoxFit.cover,
@@ -160,23 +175,34 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ),
                       child: _isUploading
                           ? const Center(
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 3,
+                              ),
                             )
-                          : (user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty)
-                              ? null
-                              : Center(
-                                  child: Text(
-                                    initial,
-                                    style: const TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.bold),
-                                  ),
+                          : (user?.avatarUrl != null &&
+                                user!.avatarUrl!.isNotEmpty)
+                          ? null
+                          : Center(
+                              child: Text(
+                                initial,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 38,
+                                  fontWeight: FontWeight.bold,
                                 ),
+                              ),
+                            ),
                     ),
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: AppColors.primaryOrange,
                         shape: BoxShape.circle,
-                        border: Border.all(color: isDark ? AppColors.darkBg : AppColors.lightBg, width: 2),
+                        border: Border.all(
+                          color: isDark ? AppColors.darkBg : AppColors.lightBg,
+                          width: 2,
+                        ),
                       ),
                       child: const Icon(
                         Icons.camera_alt,
@@ -193,13 +219,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
+                  color: isDark
+                      ? AppColors.darkTextMain
+                      : AppColors.lightTextMain,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 user?.email ?? 'rep@kkpstore.lk',
-                style: const TextStyle(fontSize: 13, color: AppColors.darkTextSub),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.darkTextSub,
+                ),
               ),
               const SizedBox(height: 24),
               Card(
@@ -208,24 +239,47 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 clipBehavior: Clip.antiAlias,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                  side: BorderSide(
+                    color: isDark
+                        ? AppColors.darkBorder
+                        : AppColors.lightBorder,
+                  ),
                 ),
                 child: Column(
                   children: [
                     ListTile(
-                      leading: const Icon(Icons.phone, color: AppColors.cyanAccent),
+                      leading: const Icon(
+                        Icons.phone,
+                        color: AppColors.cyanAccent,
+                      ),
                       title: const Text('Phone Number'),
                       subtitle: Text(user?.phone ?? 'N/A'),
                     ),
-                    Divider(height: 1, color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                    Divider(
+                      height: 1,
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : AppColors.lightBorder,
+                    ),
                     ListTile(
-                      leading: const Icon(Icons.badge, color: AppColors.primaryOrange),
+                      leading: const Icon(
+                        Icons.badge,
+                        color: AppColors.primaryOrange,
+                      ),
                       title: const Text('Role / Type'),
                       subtitle: Text(user?.role ?? 'DSR_REP'),
                     ),
-                    Divider(height: 1, color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                    Divider(
+                      height: 1,
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : AppColors.lightBorder,
+                    ),
                     ListTile(
-                      leading: const Icon(Icons.business, color: AppColors.purpleAccent),
+                      leading: const Icon(
+                        Icons.business,
+                        color: AppColors.purpleAccent,
+                      ),
                       title: const Text('Branch Hub'),
                       subtitle: const Text('Main Distribution Branch Hub'),
                     ),
@@ -239,12 +293,21 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 clipBehavior: Clip.antiAlias,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                  side: BorderSide(
+                    color: isDark
+                        ? AppColors.darkBorder
+                        : AppColors.lightBorder,
+                  ),
                 ),
                 child: Column(
                   children: [
                     SwitchListTile(
-                      secondary: Icon(widget.isDarkMode ? Icons.wb_sunny : Icons.nightlight_round, color: AppColors.cyanAccent),
+                      secondary: Icon(
+                        widget.isDarkMode
+                            ? Icons.wb_sunny
+                            : Icons.nightlight_round,
+                        color: AppColors.cyanAccent,
+                      ),
                       title: const Text('Dark Mode'),
                       value: widget.isDarkMode,
                       onChanged: (val) => widget.onToggleTheme(),
@@ -258,58 +321,65 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      Navigator.pop(context);
-                      widget.onLogout!();
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          title: const Row(
+                            children: [
+                              Icon(Icons.logout, color: AppColors.roseDanger),
+                              SizedBox(width: 8),
+                              Text(
+                                'Confirm Logout',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          content: const Text(
+                            'Are you sure you want to log out of your account?',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Cancel'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                Navigator.pop(context);
+                                widget.onLogout!();
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.roseDanger,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: const Text('Log Out'),
+                            ),
+                          ],
+                        ),
+                      );
                     },
-                    icon: const Icon(Icons.logout),
-                    label: const Text('Log Out', style: TextStyle(fontWeight: FontWeight.bold)),
+                    icon: const Icon(Icons.logout, size: 18),
+                    label: const Text(
+                      'LOG OUT FROM APP',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.roseDanger,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ),
               ],
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text('Log Out'),
-                        content: const Text('Are you sure you want to log out of your account?'),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(ctx);
-                              widget.onLogout?.call();
-                            },
-                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.roseDanger),
-                            child: const Text('Log Out', style: TextStyle(color: Colors.white)),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: isDark ? AppColors.primaryOrange : AppColors.lightCard,
-                    foregroundColor: AppColors.roseDanger,
-                    side: const BorderSide(color: AppColors.roseDanger),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  icon: Icon(Icons.logout, color: isDark ? Colors.white : AppColors.roseDanger),
-                  label: Text('LOG OUT FROM APP',
-                      style: TextStyle(fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : AppColors.roseDanger
-                      )),
-                ),
-              ),
             ],
           ),
         ),

@@ -113,7 +113,10 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       final startStr = startDate.toIso8601String().split('T').first;
       final endStr = endDate.toIso8601String().split('T').first;
 
-      final sales = await salesProvider.getSales(startDate: startStr, endDate: endStr);
+      final sales = await salesProvider.getSales(
+        startDate: startStr,
+        endDate: endStr,
+      );
 
       double revenue = 0.0;
       int bills = 0;
@@ -121,12 +124,23 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
       for (var sale in sales) {
         // Verify sale date falls strictly within [startDate, endDate] range
-        final rawDateStr = (sale['sale_date'] ?? sale['created_at'])?.toString().split('T').first;
+        final rawDateStr = (sale['sale_date'] ?? sale['created_at'])
+            ?.toString()
+            .split('T')
+            .first;
         if (rawDateStr != null && rawDateStr.isNotEmpty) {
           try {
             final saleDate = DateTime.parse(rawDateStr);
-            final saleDay = DateTime(saleDate.year, saleDate.month, saleDate.day);
-            final sDay = DateTime(startDate.year, startDate.month, startDate.day);
+            final saleDay = DateTime(
+              saleDate.year,
+              saleDate.month,
+              saleDate.day,
+            );
+            final sDay = DateTime(
+              startDate.year,
+              startDate.month,
+              startDate.day,
+            );
             final eDay = DateTime(endDate.year, endDate.month, endDate.day);
 
             if (saleDay.isBefore(sDay) || saleDay.isAfter(eDay)) {
@@ -135,9 +149,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           } catch (_) {}
         }
 
-        final amount = (sale['paid_amount'] ?? sale['total_amount'] ?? 0.0) is num
+        final amount =
+            (sale['paid_amount'] ?? sale['total_amount'] ?? 0.0) is num
             ? (sale['paid_amount'] ?? sale['total_amount'] ?? 0.0).toDouble()
-            : double.tryParse((sale['paid_amount'] ?? sale['total_amount'] ?? '0.0').toString()) ?? 0.0;
+            : double.tryParse(
+                    (sale['paid_amount'] ?? sale['total_amount'] ?? '0.0')
+                        .toString(),
+                  ) ??
+                  0.0;
 
         if (sale['status'] != 'CANCELLED') {
           revenue += amount;
@@ -153,7 +172,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         if (sale['created_at'] != null) {
           try {
             final parsedDate = DateTime.parse(sale['created_at'].toString());
-            timeStr = '${parsedDate.hour.toString().padLeft(2, '0')}:${parsedDate.minute.toString().padLeft(2, '0')}';
+            timeStr =
+                '${parsedDate.hour.toString().padLeft(2, '0')}:${parsedDate.minute.toString().padLeft(2, '0')}';
           } catch (_) {
             timeStr = sale['created_at'].toString().split('T').first;
           }
@@ -195,7 +215,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         context: context,
         firstDate: DateTime(2025, 1, 1),
         lastDate: DateTime.now(),
-        initialDateRange: _selectedDateRange ??
+        initialDateRange:
+            _selectedDateRange ??
             DateTimeRange(
               start: now.subtract(const Duration(days: 7)),
               end: now,
@@ -223,7 +244,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         });
         AppSnackBar.showSuccess(
           context,
-          message: 'Filtered sales report from ${_formatDate(pickedRange.start)} to ${_formatDate(pickedRange.end)}',
+          message:
+              'Filtered sales report from ${_formatDate(pickedRange.start)} to ${_formatDate(pickedRange.end)}',
         );
         _fetchSalesData();
       }
@@ -245,17 +267,21 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   }
 
   Map<String, String> get _kpis {
-    final double percentage = _targetAmount > 0 ? (_totalRevenue / _targetAmount * 100) : 0.0;
+    final double percentage = _targetAmount > 0
+        ? (_totalRevenue / _targetAmount * 100)
+        : 0.0;
     String billsLabel = '$_completedBills Completed Bills';
     if (_selectedFilter == 'Date Range' && _selectedDateRange != null) {
-      billsLabel = '$_completedBills Bills (${_formatDate(_selectedDateRange!.start)} - ${_formatDate(_selectedDateRange!.end)})';
+      billsLabel =
+          '$_completedBills Bills (${_formatDate(_selectedDateRange!.start)} - ${_formatDate(_selectedDateRange!.end)})';
     }
 
     return {
       'revenue': 'LKR ${_totalRevenue.toStringAsFixed(2)}',
       'bills': billsLabel,
       'commission': 'LKR ${_totalCommission.toStringAsFixed(2)}',
-      'target': 'LKR ${_targetAmount.toStringAsFixed(2)} (${percentage.toStringAsFixed(0)}% Met)',
+      'target':
+          'LKR ${_targetAmount.toStringAsFixed(2)} (${percentage.toStringAsFixed(0)}% Met)',
     };
   }
 
@@ -279,19 +305,50 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               children: [
                 const Text(
                   'Sales Targets & Goals',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryOrange),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryOrange,
+                  ),
                 ),
-                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
               ],
             ),
             const SizedBox(height: 12),
-            _buildTargetProgressItem('Today Sales Revenue Target', 45000, 50000, AppColors.primaryOrange, isDark),
+            _buildTargetProgressItem(
+              'Today Sales Revenue Target',
+              45000,
+              50000,
+              AppColors.primaryOrange,
+              isDark,
+            ),
             const SizedBox(height: 12),
-            _buildTargetProgressItem('Scratch Cards Sales Target', 480, 500, AppColors.cyanAccent, isDark),
+            _buildTargetProgressItem(
+              'Scratch Cards Sales Target',
+              480,
+              500,
+              AppColors.cyanAccent,
+              isDark,
+            ),
             const SizedBox(height: 12),
-            _buildTargetProgressItem('4G SIM Cards Activation Target', 28, 30, AppColors.emeraldSuccess, isDark),
+            _buildTargetProgressItem(
+              '4G SIM Cards Activation Target',
+              28,
+              30,
+              AppColors.emeraldSuccess,
+              isDark,
+            ),
             const SizedBox(height: 12),
-            _buildTargetProgressItem('Easy Reload Revenue Target', 115000, 120000, AppColors.purpleAccent, isDark),
+            _buildTargetProgressItem(
+              'Easy Reload Revenue Target',
+              115000,
+              120000,
+              AppColors.purpleAccent,
+              isDark,
+            ),
             const SizedBox(height: 24),
           ],
         ),
@@ -299,7 +356,13 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     );
   }
 
-  Widget _buildTargetProgressItem(String title, double current, double target, Color color, bool isDark) {
+  Widget _buildTargetProgressItem(
+    String title,
+    double current,
+    double target,
+    Color color,
+    bool isDark,
+  ) {
     final ratio = (current / target).clamp(0.0, 1.0);
     final percentage = (ratio * 100).toInt();
 
@@ -316,8 +379,21 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-              Text('$percentage%', style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 13)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+              Text(
+                '$percentage%',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                  fontSize: 13,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 6),
@@ -334,8 +410,24 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Achieved: ${current.toStringAsFixed(0)}', style: TextStyle(fontSize: 11, color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub)),
-              Text('Target: ${target.toStringAsFixed(0)}', style: TextStyle(fontSize: 11, color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub)),
+              Text(
+                'Achieved: ${current.toStringAsFixed(0)}',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isDark
+                      ? AppColors.darkTextSub
+                      : AppColors.lightTextSub,
+                ),
+              ),
+              Text(
+                'Target: ${target.toStringAsFixed(0)}',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isDark
+                      ? AppColors.darkTextSub
+                      : AppColors.lightTextSub,
+                ),
+              ),
             ],
           ),
         ],
@@ -358,22 +450,32 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             return pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Text('Sales Report - $_selectedFilter', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                pw.Text(
+                  'Sales Report - $_selectedFilter',
+                  style: pw.TextStyle(
+                    fontSize: 24,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
                 pw.SizedBox(height: 10),
-                pw.Text('Total Revenue: LKR ${_totalRevenue.toStringAsFixed(2)}'),
+                pw.Text(
+                  'Total Revenue: LKR ${_totalRevenue.toStringAsFixed(2)}',
+                ),
                 pw.Text('Completed Bills: $_completedBills'),
                 pw.SizedBox(height: 20),
                 pw.TableHelper.fromTextArray(
                   context: context,
                   data: <List<String>>[
                     <String>['Shop', 'Time', 'Items', 'Amount', 'Payment'],
-                    ..._fetchedTransactions.map((tx) => [
-                          tx['shop'].toString(),
-                          tx['time'].toString(),
-                          tx['items'].toString(),
-                          tx['amount'].toString(),
-                          tx['payment'].toString(),
-                        ]),
+                    ..._fetchedTransactions.map(
+                      (tx) => [
+                        tx['shop'].toString(),
+                        tx['time'].toString(),
+                        tx['items'].toString(),
+                        tx['amount'].toString(),
+                        tx['payment'].toString(),
+                      ],
+                    ),
                   ],
                 ),
               ],
@@ -387,9 +489,12 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       await file.writeAsBytes(await pdf.save());
 
       // ignore: deprecated_member_use
-      await Share.shareXFiles([XFile(file.path)], text: 'Sales Report - $_selectedFilter');
+      await Share.shareXFiles([
+        XFile(file.path),
+      ], text: 'Sales Report - $_selectedFilter');
     } catch (e) {
-      if (mounted) AppSnackBar.showError(context, message: 'Failed to export PDF: $e');
+      if (mounted)
+        AppSnackBar.showError(context, message: 'Failed to export PDF: $e');
     }
   }
 
@@ -414,16 +519,25 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         ]);
       }
 
-      String csvData = rows.map((row) => row.map((e) => '"${e.toString().replaceAll('"', '""')}"').join(',')).join('\n');
+      String csvData = rows
+          .map(
+            (row) => row
+                .map((e) => '"${e.toString().replaceAll('"', '""')}"')
+                .join(','),
+          )
+          .join('\n');
 
       final output = await getTemporaryDirectory();
       final file = File('${output.path}/sales_report.csv');
       await file.writeAsString(csvData);
 
       // ignore: deprecated_member_use
-      await Share.shareXFiles([XFile(file.path)], text: 'Sales Report - $_selectedFilter');
+      await Share.shareXFiles([
+        XFile(file.path),
+      ], text: 'Sales Report - $_selectedFilter');
     } catch (e) {
-      if (mounted) AppSnackBar.showError(context, message: 'Failed to export CSV: $e');
+      if (mounted)
+        AppSnackBar.showError(context, message: 'Failed to export CSV: $e');
     }
   }
 
@@ -441,11 +555,15 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               // Quick Action Buttons Grid (Reports, Targets, Inventory, Commissions)
               const Text(
                 'QUICK ACTIONS & MODULES:',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryOrange, letterSpacing: 0.5),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryOrange,
+                  letterSpacing: 0.5,
+                ),
               ),
               const SizedBox(height: 10),
 
@@ -467,9 +585,15 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                          color: isDark
+                              ? AppColors.darkCard
+                              : AppColors.lightCard,
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: AppColors.cyanAccent.withAlpha((0.4 * 255).toInt())),
+                          border: Border.all(
+                            color: AppColors.cyanAccent.withAlpha(
+                              (0.4 * 255).toInt(),
+                            ),
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -477,15 +601,35 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: AppColors.cyanAccent.withAlpha((0.15 * 255).toInt()),
+                                color: AppColors.cyanAccent.withAlpha(
+                                  (0.15 * 255).toInt(),
+                                ),
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.bar_chart_rounded, color: AppColors.cyanAccent, size: 20),
+                              child: const Icon(
+                                Icons.bar_chart_rounded,
+                                color: AppColors.cyanAccent,
+                                size: 20,
+                              ),
                             ),
                             const SizedBox(height: 10),
-                            const Text('Sales Reports', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            const Text(
+                              'Sales Reports',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
                             const SizedBox(height: 2),
-                            Text('Audit & exports', style: TextStyle(fontSize: 10, color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub)),
+                            Text(
+                              'Audit & exports',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: isDark
+                                    ? AppColors.darkTextSub
+                                    : AppColors.lightTextSub,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -501,9 +645,15 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                          color: isDark
+                              ? AppColors.darkCard
+                              : AppColors.lightCard,
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: AppColors.primaryOrange.withAlpha((0.4 * 255).toInt())),
+                          border: Border.all(
+                            color: AppColors.primaryOrange.withAlpha(
+                              (0.4 * 255).toInt(),
+                            ),
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -511,15 +661,35 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: AppColors.primaryOrange.withAlpha((0.15 * 255).toInt()),
+                                color: AppColors.primaryOrange.withAlpha(
+                                  (0.15 * 255).toInt(),
+                                ),
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.track_changes, color: AppColors.primaryOrange, size: 20),
+                              child: const Icon(
+                                Icons.track_changes,
+                                color: AppColors.primaryOrange,
+                                size: 20,
+                              ),
                             ),
                             const SizedBox(height: 10),
-                            const Text('Sales Targets', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            const Text(
+                              'Sales Targets',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
                             const SizedBox(height: 2),
-                            Text('Goal vs progress', style: TextStyle(fontSize: 10, color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub)),
+                            Text(
+                              'Goal vs progress',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: isDark
+                                    ? AppColors.darkTextSub
+                                    : AppColors.lightTextSub,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -529,24 +699,27 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               ),
               const SizedBox(height: 12),
 
-              Row(
-                children: [
-
-                  const SizedBox(width: 12),
-
-                ],
-              ),
+              Row(children: [const SizedBox(width: 12)]),
               const SizedBox(height: 20),
 
               // Sales Period Filter Options (Today, Weekly, Monthly, Yearly, Date Range)
               Row(
                 key: _reportSectionKey,
                 children: const [
-                  Icon(Icons.filter_list, color: AppColors.primaryOrange, size: 18),
+                  Icon(
+                    Icons.filter_list,
+                    color: AppColors.primaryOrange,
+                    size: 18,
+                  ),
                   SizedBox(width: 8),
                   Text(
                     'SALES TIME PERIOD FILTER:',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryOrange, letterSpacing: 0.5),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryOrange,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ],
               ),
@@ -568,24 +741,35 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                               const SizedBox(width: 4),
                             ],
                             Text(
-                              option == 'Date Range' && _selectedDateRange != null
+                              option == 'Date Range' &&
+                                      _selectedDateRange != null
                                   ? '${_formatDate(_selectedDateRange!.start)} - ${_formatDate(_selectedDateRange!.end)}'
                                   : option,
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: isSelected ? Colors.white : (isDark ? AppColors.darkTextMain : AppColors.lightTextMain),
+                                color: isSelected
+                                    ? Colors.white
+                                    : (isDark
+                                          ? AppColors.darkTextMain
+                                          : AppColors.lightTextMain),
                               ),
                             ),
                           ],
                         ),
                         selected: isSelected,
                         selectedColor: AppColors.primaryOrange,
-                        backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
+                        backgroundColor: isDark
+                            ? AppColors.darkCard
+                            : AppColors.lightCard,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                           side: BorderSide(
-                            color: isSelected ? AppColors.primaryOrange : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                            color: isSelected
+                                ? AppColors.primaryOrange
+                                : (isDark
+                                      ? AppColors.darkBorder
+                                      : AppColors.lightBorder),
                           ),
                         ),
                         onSelected: (_) => _selectFilter(option),
@@ -603,9 +787,15 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                        color: isDark
+                            ? AppColors.darkCard
+                            : AppColors.lightCard,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                        border: Border.all(
+                          color: isDark
+                              ? AppColors.darkBorder
+                              : AppColors.lightBorder,
+                        ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -615,12 +805,20 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub,
+                              color: isDark
+                                  ? AppColors.darkTextSub
+                                  : AppColors.lightTextSub,
                             ),
                           ),
                           const SizedBox(height: 8),
                           _isLoadingKpis
-                              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
                               : Text(
                                   kpis['revenue']!,
                                   style: const TextStyle(
@@ -634,7 +832,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                             kpis['bills']!,
                             style: TextStyle(
                               fontSize: 10,
-                              color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub,
+                              color: isDark
+                                  ? AppColors.darkTextSub
+                                  : AppColors.lightTextSub,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -642,7 +842,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                       ),
                     ),
                   ),
-
                 ],
               ),
               const SizedBox(height: 16),
@@ -654,12 +853,20 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     child: ElevatedButton.icon(
                       onPressed: _exportPdf,
                       icon: const Icon(Icons.picture_as_pdf, size: 16),
-                      label: const Text('Export PDF Report', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      label: const Text(
+                        'Export PDF Report',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.roseDanger,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),
@@ -668,12 +875,20 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     child: ElevatedButton.icon(
                       onPressed: _exportCsv,
                       icon: const Icon(Icons.table_chart, size: 16),
-                      label: const Text('Export Excel CSV', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      label: const Text(
+                        'Export Excel CSV',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.emeraldSuccess,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),
@@ -687,7 +902,11 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 decoration: BoxDecoration(
                   color: isDark ? AppColors.darkCard : AppColors.lightCard,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                  border: Border.all(
+                    color: isDark
+                        ? AppColors.darkBorder
+                        : AppColors.lightBorder,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -697,16 +916,34 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                       children: [
                         Text(
                           'Sales History ($_selectedFilter)',
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: isDark ? AppColors.darkInput : AppColors.lightInput,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
                           ),
-                          child: Text(_selectedFilter, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? AppColors.darkInput
+                                : AppColors.lightInput,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isDark
+                                  ? AppColors.darkBorder
+                                  : AppColors.lightBorder,
+                            ),
+                          ),
+                          child: Text(
+                            _selectedFilter,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -714,73 +951,212 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     const Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Expanded(flex: 2, child: Text('TIME / SHOP', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.darkTextSub))),
-                        Expanded(flex: 2, child: Text('ITEMS SOLD', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.darkTextSub))),
-                        Expanded(child: Text('AMOUNT', textAlign: TextAlign.end, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.darkTextSub))),
-                        Expanded(flex: 2, child: Text('PAYMENT', textAlign: TextAlign.end, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.darkTextSub))),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            'TIME / SHOP',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.darkTextSub,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            'ITEMS SOLD',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.darkTextSub,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            'AMOUNT',
+                            textAlign: TextAlign.end,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.darkTextSub,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            'PAYMENT',
+                            textAlign: TextAlign.end,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.darkTextSub,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                     const Divider(height: 16),
                     _isLoadingKpis
-                        ? const Center(child: Padding(padding: EdgeInsets.all(20.0), child: CircularProgressIndicator()))
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                          )
                         : _fetchedTransactions.isEmpty
-                            ? const Center(child: Padding(padding: EdgeInsets.all(20.0), child: Text('No sales found for this period.')))
-                            : ListView.separated(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: _fetchedTransactions.length,
-                                separatorBuilder: (context, index) => Divider(
-                                  height: 16,
-                                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                                ),
-                                itemBuilder: (context, index) {
-                                  final tx = _fetchedTransactions[index];
-                                  return Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: Text('No sales found for this period.'),
+                            ),
+                          )
+                        : ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _fetchedTransactions.length,
+                            separatorBuilder: (context, index) => Divider(
+                              height: 16,
+                              color: isDark
+                                  ? AppColors.darkBorder
+                                  : AppColors.lightBorder,
+                            ),
+                            itemBuilder: (context, index) {
+                              final tx = _fetchedTransactions[index];
+                              return Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(tx['shop'] as String, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain)),
-                                  const SizedBox(height: 2),
-                                  Text(tx['time'] as String, style: const TextStyle(fontSize: 10, color: AppColors.darkTextSub)),
+                                  Expanded(
+                                    flex: 2,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          tx['shop'] as String,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark
+                                                ? AppColors.darkTextMain
+                                                : AppColors.lightTextMain,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          tx['time'] as String,
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            color: AppColors.darkTextSub,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      tx['items'] as String,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.darkTextSub,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      tx['amount'] as String,
+                                      textAlign: TextAlign.end,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: tx['color'] as Color,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      tx['payment'] as String,
+                                      textAlign: TextAlign.end,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: tx['color'] as Color,
+                                      ),
+                                    ),
+                                  ),
                                 ],
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                tx['items'] as String,
-                                style: const TextStyle(fontSize: 11, color: AppColors.darkTextSub),
-                              ),
-                            ),
-                            Expanded(
-                              child: Text(
-                                tx['amount'] as String,
-                                textAlign: TextAlign.end,
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: tx['color'] as Color),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                tx['payment'] as String,
-                                textAlign: TextAlign.end,
-                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: tx['color'] as Color),
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
+                              );
+                            },
+                          ),
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
-              // Logout Buttonuser
+              // Logout Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        title: const Row(
+                          children: [
+                            Icon(Icons.logout, color: AppColors.roseDanger),
+                            SizedBox(width: 8),
+                            Text(
+                              'Confirm Logout',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        content: const Text(
+                          'Are you sure you want to log out of your account? Any unsaved changes will be lost.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('Cancel'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              widget.onLogout();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.roseDanger,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: const Text('Log Out'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.logout, size: 18),
+                  label: const Text(
+                    'LOG OUT FROM APP',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.roseDanger,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
 
               const SizedBox(height: 80),
             ],

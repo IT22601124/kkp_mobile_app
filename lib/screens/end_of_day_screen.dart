@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../provider/sales_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_snack_bar.dart';
+import '../widgets/other_screen header.dart';
 
 class EndOfDayScreen extends StatefulWidget {
   final VoidCallback onEndTripSuccess;
@@ -80,6 +81,15 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
         cashCollected + chequesCollected + onlineCollected;
 
     return Scaffold(
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(60),
+        child: OtherScreenHeader(
+          title: 'DSR Daily Settlement Sheet',
+          isDarkMode: isDark,
+          isKeepTheme: false,
+          onToggleTheme: () {},
+        ),
+      ),
       backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
       body: SafeArea(
         child: RefreshIndicator(
@@ -93,16 +103,6 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
               children: [
                 // DSR Daily Settlement Sheet Banner
                 Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isDark
-                          ? AppColors.darkBorder
-                          : AppColors.lightBorder,
-                    ),
-                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,20 +110,10 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'DSR DAILY SETTLEMENT SHEET',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.darkTextSub,
-                              letterSpacing: 1.0,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
                           Text(
-                            'Date: $dateStr ($shopsVisited Shops Visited)',
+                            'Date: $dateStr',
                             style: const TextStyle(
-                              fontSize: 12,
+                              fontSize: 16,
                               fontWeight: FontWeight.w600,
                               color: AppColors.primaryOrange,
                             ),
@@ -141,7 +131,7 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                                   _settlementData?['status'] == 'SUBMITTED')
                               ? AppColors.emeraldSuccess.withAlpha((0.2 * 255).toInt())
                               : AppColors.primaryOrange.withAlpha((0.15 * 255).toInt()),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color:
                                 (_settlementData?['is_saved'] == true ||
@@ -153,8 +143,8 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                         child: Text(
                           (_settlementData?['is_saved'] == true ||
                                   _settlementData?['status'] == 'SUBMITTED')
-                              ? 'SUBMITTED\nSaved in DB'
-                              : 'Pre-Balanced\nDraft',
+                              ? 'SUBMITTED'
+                              : 'Pre-Balanced Draft',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color:
@@ -172,39 +162,6 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                 ),
                 const SizedBox(height: 14),
 
-                // Info Note Box
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.cyanAccent.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: AppColors.darkYellow.withOpacity(0.3),
-                    ),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(
-                        Icons.lock_outline,
-                        color: AppColors.darkYellow,
-                        size: 18,
-                      ),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Auto-Calculated Real-Time from Sales Transactions. Pull down to refresh live values.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.darkYellow,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-
                 if (_isLoading)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 40),
@@ -215,12 +172,10 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                     ),
                   )
                 else ...[
-                  // 1. Product Stock & Sales Matrix
                   const Text(
                     '1. Product Sales Matrix Today',
                     style: TextStyle(
                       fontSize: 15,
-                      fontWeight: FontWeight.bold,
                       color: AppColors.primaryOrange,
                     ),
                   ),
@@ -229,12 +184,7 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isDark
-                            ? AppColors.darkBorder
-                            : AppColors.lightBorder,
-                      ),
+                      borderRadius: BorderRadius.circular(0),
                     ),
                     child: Column(
                       children: [
@@ -351,11 +301,10 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                   const SizedBox(height: 20),
 
                   // 2. Daily Collection Ledger
-                  const Text(
-                    '2. Daily Collections & Payment Ledger',
+                   Text(
+                    '2. Daily Collections',
                     style: TextStyle(
                       fontSize: 15,
-                      fontWeight: FontWeight.bold,
                       color: AppColors.cyanAccent,
                     ),
                   ),
@@ -364,12 +313,8 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isDark
-                            ? AppColors.darkBorder
-                            : AppColors.lightBorder,
-                      ),
+                      borderRadius: BorderRadius.circular(0),
+
                     ),
                     child: Column(
                       children: [
@@ -395,18 +340,17 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text(
-                              'TOTAL PAYMENTS\nCOLLECTED TODAY:',
+                              'TOTAL PAYMENTS TODAY:',
                               style: TextStyle(
                                 fontSize: 12,
-                                fontWeight: FontWeight.bold,
                                 color: AppColors.emeraldSuccess,
                               ),
                             ),
                             Text(
                               'LKR ${totalCollected.toStringAsFixed(2)}',
                               style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
                                 color: AppColors.emeraldSuccess,
                               ),
                             ),
@@ -419,10 +363,9 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
 
                   // 3. Shop Credit Reconciliation
                   const Text(
-                    '3. Shop Credit Reconciliation',
+                    '3. Shop Credit',
                     style: TextStyle(
                       fontSize: 15,
-                      fontWeight: FontWeight.bold,
                       color: AppColors.purpleAccent,
                     ),
                   ),
@@ -431,12 +374,7 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isDark
-                            ? AppColors.darkBorder
-                            : AppColors.lightBorder,
-                      ),
+                      borderRadius: BorderRadius.circular(0),
                     ),
                     child: Column(
                       children: [
@@ -462,11 +400,10 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                         ),
                         const Divider(height: 20),
                         _buildReconRow(
-                          'ENDING SHOP CREDIT BALANCE:',
+                          'TOTAL CREDIT BALANCE:',
                           'LKR ${endingCredit.toStringAsFixed(2)}',
                           isDark,
                           AppColors.purpleAccent,
-                          isBold: true,
                         ),
                       ],
                     ),

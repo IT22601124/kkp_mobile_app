@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import '../theme/app_theme.dart';
 
 class LoadingOverlay extends StatelessWidget {
@@ -25,7 +26,10 @@ class LoadingOverlay extends StatelessWidget {
             color: Colors.black.withOpacity(0.5),
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 24,
+                ),
                 margin: const EdgeInsets.symmetric(horizontal: 40),
                 decoration: BoxDecoration(
                   color: isDark ? AppColors.darkCard : AppColors.lightCard,
@@ -41,13 +45,9 @@ class LoadingOverlay extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const SizedBox(
-                      width: 36,
-                      height: 36,
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryOrange),
-                        strokeWidth: 3,
-                      ),
+                    LoadingAnimationWidget.hexagonDots(
+                      color: AppColors.primaryOrange,
+                      size: 38,
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -56,7 +56,9 @@ class LoadingOverlay extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
+                        color: isDark
+                            ? AppColors.darkTextMain
+                            : AppColors.lightTextMain,
                       ),
                     ),
                   ],

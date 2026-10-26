@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import '../provider/auth_provider.dart';
 import '../resources/api_routes.dart';
+import '../resources/image_resource.dart';
 import '../theme/app_theme.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -14,38 +15,13 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
+class _SplashScreenState extends State<SplashScreen> {
   String _statusMessage = 'Initializing application...';
   bool _hasConnectionError = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 1800),
-      vsync: this,
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.6, curve: Curves.easeIn),
-      ),
-    );
-
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.2, 1.0, curve: Curves.easeOutBack),
-      ),
-    );
-
-    _controller.forward();
-
     _initializeAndCheckHealth();
   }
 
@@ -93,200 +69,221 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: ScaleTransition(
-              scale: _scaleAnimation,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Professional Corporate Logo Emblem
-                  Container(
-                    width: 120,
-                    height: 120,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(
-                        color: AppColors.primaryOrange.withOpacity(0.3),
-                        width: 2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primaryOrange.withOpacity(0.25),
-                          blurRadius: 24,
-                          offset: const Offset(0, 12),
-                        ),
-                      ],
-                    ),
-                    child: Image.asset(
-                      'assets/images/gemini-svg (1).png',
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                  // App Title
-                  Text(
-                    'Sundaram DSR',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: isDark
-                          ? AppColors.darkTextMain
-                          : AppColors.lightTextMain,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // Subtitle
-                  Text(
-                    'Van Sales & Distribution System',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isDark
-                          ? AppColors.darkTextSub
-                          : AppColors.lightTextSub,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                  const SizedBox(height: 40),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Background Image (Expanded 100% Full Screen)
+          Image.asset(
+            ImageResource.splashScreenBackground,
+            fit: BoxFit.cover,
+            color: Colors.black.withAlpha((0.7 * 255).toInt()),
+            colorBlendMode: BlendMode.darken,
+            width: double.infinity,
+            height: double.infinity,
+          ),
 
-                  // Connection Error Box or Loading Indicator
-                  if (_hasConnectionError) ...[
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.roseDanger.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.roseDanger),
+          // Foreground Content
+          SafeArea(
+            child: SizedBox(
+              width: double.infinity,
+              height: double.infinity,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 36),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 110,
+                        height: 110,
+                        padding: EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          //   color: AppColors.darkCard.withAlpha((0.9 * 255).toInt()),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Image.asset(
+                          ImageResource.logo,
+                          fit: BoxFit.contain,
+                        ),
                       ),
-                      child: Column(
+                      const SizedBox(height: 14),
+
+                      // App Title & Subtitle
+                      Column(
                         children: [
-                          const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.wifi_off_rounded,
-                                color: AppColors.roseDanger,
-                                size: 24,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Connection Problem',
-                                style: TextStyle(
-                                  color: AppColors.roseDanger,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
                           Text(
-                            'Unable to connect to server at ${ApiRoutes.baseUrl}',
-                            textAlign: TextAlign.center,
+                            'Sundaram DSR',
                             style: TextStyle(
-                              fontSize: 12,
-                              color: isDark
-                                  ? AppColors.darkTextSub
-                                  : AppColors.lightTextSub,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              letterSpacing: 0.5,
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: _initializeAndCheckHealth,
-                                  icon: const Icon(Icons.refresh, size: 16),
-                                  label: const Text('RETRY'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primaryOrange,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 12,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: () =>
-                                      widget.onInitializationComplete(false),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: AppColors.cyanAccent,
-                                    side: const BorderSide(
-                                      color: AppColors.cyanAccent,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 12,
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'PROCEED OFFLINE',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                          const Text(
+                            'Sales & Distribution System',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white70,
+                              letterSpacing: 0.3,
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ] else ...[
-                    SizedBox(
-                      width: 40,
-                      height: 40,
-                      child: LoadingAnimationWidget.fallingDot(
-                        color: AppColors.primaryOrange,
-                        size: 48,
+                    ],
+                  ),
+
+                  const Spacer(flex: 12),
+
+                  // Connection Error Box or Loading Indicator
+                  if (_hasConnectionError) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withAlpha((0.85 * 255).toInt()),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: AppColors.roseDanger,
+                            width: 1.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withAlpha(
+                                (0.5 * 255).toInt(),
+                              ),
+                              blurRadius: 16,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.wifi_off_rounded,
+                                  color: AppColors.roseDanger,
+                                  size: 24,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Connection Problem',
+                                  style: TextStyle(
+                                    color: AppColors.roseDanger,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              'Unable to connect to server at ${ApiRoutes.baseUrl}',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.white70,
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: _initializeAndCheckHealth,
+                                    icon: const Icon(Icons.refresh, size: 16),
+                                    label: const Text('RETRY'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primaryOrange,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () =>
+                                        widget.onInitializationComplete(false),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: AppColors.cyanAccent,
+                                      side: const BorderSide(
+                                        color: AppColors.cyanAccent,
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'PROCEED OFFLINE',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                  ] else ...[
+                    // Hexagon Dots Loading Animation
+                    LoadingAnimationWidget.hexagonDots(
+                      color: AppColors.primaryOrange,
+                      size: 38,
+                    ),
+                    const SizedBox(height: 14),
                     Text(
                       _statusMessage,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDark
-                            ? AppColors.darkTextSub
-                            : AppColors.lightTextSub,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w400,
+                        letterSpacing: 0.3,
                       ),
                     ),
                   ],
+
+                  const SizedBox(height: 24),
+
+                  // Bottom Footer Version Text
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 16.0),
+                    child: Text(
+                      'Version 1.0.0  |  Sundaram Multi-Brand',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.white38,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
-        ),
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Text(
-          'Version 1.0.0 â€¢ Sundaram Multi-Brand',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 11,
-            color: (isDark ? AppColors.darkTextSub : AppColors.lightTextSub)
-                .withOpacity(0.6),
-          ),
-        ),
+        ],
       ),
     );
   }

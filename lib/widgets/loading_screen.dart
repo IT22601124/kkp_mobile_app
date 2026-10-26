@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import '../theme/app_theme.dart';
 
 class LoadingScreen extends StatelessWidget {
   final String message;
 
-  const LoadingScreen({
-    super.key,
-    this.message = 'Please wait...',
-  });
+  const LoadingScreen({super.key, this.message = 'Please wait...'});
 
   @override
   Widget build(BuildContext context) {
@@ -37,9 +35,9 @@ class LoadingScreen extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryOrange),
-                      strokeWidth: 3,
+                    LoadingAnimationWidget.hexagonDots(
+                      color: AppColors.primaryOrange,
+                      size: 40,
                     ),
                     const SizedBox(height: 20),
                     Text(
@@ -48,7 +46,9 @@ class LoadingScreen extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
+                        color: isDark
+                            ? AppColors.darkTextMain
+                            : AppColors.lightTextMain,
                       ),
                     ),
                   ],

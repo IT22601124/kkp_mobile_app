@@ -366,7 +366,10 @@ class _AllShopsScreenState extends State<AllShopsScreen> {
               Expanded(
                 child: shopProvider.isLoading
                     ? Center(
-                        child: LoadingAnimationWidget.fallingDot(color: AppColors.primaryOrange, size: 40),
+                        child:  LoadingAnimationWidget.hexagonDots(
+                          color: AppColors.primaryOrange,
+                          size: 38,
+                        ),
                       )
                     : filteredShops.isEmpty
                         ? Center(
@@ -397,7 +400,6 @@ class _AllShopsScreenState extends State<AllShopsScreen> {
                               itemBuilder: (ctx, idx) {
                                 final shop = filteredShops[idx];
                                 return Container(
-                                  margin: const EdgeInsets.only(bottom: 12),
                                   decoration: BoxDecoration(
                                     color: isDark ? AppColors.darkCard : AppColors.lightCard,
                                     borderRadius: BorderRadius.circular(12),
@@ -407,7 +409,7 @@ class _AllShopsScreenState extends State<AllShopsScreen> {
                                     borderRadius: BorderRadius.circular(12),
                                     onTap: () => _showShopDetailsModal(shop),
                                     child: Padding(
-                                      padding: const EdgeInsets.all(16.0),
+                                      padding:  EdgeInsets.symmetric(horizontal: 12, vertical: 0),
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
@@ -428,28 +430,9 @@ class _AllShopsScreenState extends State<AllShopsScreen> {
                                                         overflow: TextOverflow.ellipsis,
                                                       ),
                                                     ),
-                                                    const SizedBox(width: 6),
-                                                    const Icon(Icons.info_outline, size: 14, color: AppColors.primaryOrange),
-                                                  ],
+                                                     ],
                                                 ),
                                               ),
-                                              const SizedBox(width: 8),
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                                decoration: BoxDecoration(
-                                                  color: AppColors.primaryOrange.withOpacity(0.15),
-                                                  borderRadius: BorderRadius.circular(10),
-                                                ),
-                                                child: Text(
-                                                  shop.shopCode,
-                                                  style: const TextStyle(
-                                                    color: AppColors.primaryOrange,
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 8),
                                               IconButton(
                                                 onPressed: () {
                                                   RegisterShopBottomSheet.show(context, shopToEdit: shop);
@@ -458,7 +441,6 @@ class _AllShopsScreenState extends State<AllShopsScreen> {
                                                 padding: EdgeInsets.zero,
                                                 constraints: const BoxConstraints(),
                                               ),
-                                              const SizedBox(width: 8),
                                               IconButton(
                                                 onPressed: () => _deleteShop(shop.id, shop.shopName),
                                                 icon: const Icon(Icons.delete_outline, color: AppColors.roseDanger, size: 20),
@@ -467,7 +449,6 @@ class _AllShopsScreenState extends State<AllShopsScreen> {
                                               ),
                                             ],
                                           ),
-                                          const SizedBox(height: 6),
                                           Text(
                                             'Owner: ${shop.ownerName.isNotEmpty ? shop.ownerName : "N/A"} • Phone: ${shop.phone.isNotEmpty ? shop.phone : "N/A"}. Address: ${shop.address}',
                                             style: TextStyle(fontSize: 12, color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub),
@@ -491,6 +472,7 @@ class _AllShopsScreenState extends State<AllShopsScreen> {
                                               ),
                                             ],
                                           ),
+                                          const SizedBox(height: 12),
                                         ],
                                       ),
                                     ),
