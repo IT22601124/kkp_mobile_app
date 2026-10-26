@@ -2,7 +2,7 @@ class ApiRoutes {
   static const String notificationsUrl = 'mobile/notifications';
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://172.28.112.1:8000/api/v1/',
+    defaultValue: 'https://api.sundarambrothers.com/api/v1/',
   );
   static const String loginUrl = 'mobile/rep/login';
   static const String checkTokenUrl = 'mobile/rep/check-token';

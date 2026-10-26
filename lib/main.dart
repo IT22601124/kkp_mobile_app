@@ -58,33 +58,29 @@ class _DsrRepMobileAppState extends State<DsrRepMobileApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Sundaram DSR Mobile',
-      debugShowCheckedModeBanner: false,
-      themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      home: _showSplash
-          ? SplashScreen(
-              onInitializationComplete: (isLoggedIn) => setState(() {
-                _showSplash = false;
-                _isLoggedIn = isLoggedIn;
-              }),
-            )
-          : (_isLoggedIn
-                ? MultiProvider(
-                    key: ValueKey(
-                      context.watch<AuthProvider>().sessionRevision,
-                    ),
-                    providers: [
-                      ChangeNotifierProvider(create: (_) => ShopProvider()),
-                      ChangeNotifierProvider(create: (_) => ItemProvider()),
-                      ChangeNotifierProvider(create: (_) => SalesProvider()),
-                      ChangeNotifierProvider(
-                        create: (_) => BankAccountProvider(),
-                      ),
-                    ],
-                    child: MainNavigationShell(
+    return MultiProvider(
+      key: ValueKey(context.watch<AuthProvider>().sessionRevision),
+      providers: [
+        ChangeNotifierProvider(create: (_) => ShopProvider()),
+        ChangeNotifierProvider(create: (_) => ItemProvider()),
+        ChangeNotifierProvider(create: (_) => SalesProvider()),
+        ChangeNotifierProvider(create: (_) => BankAccountProvider()),
+      ],
+      child: MaterialApp(
+        title: 'Sundaram DSR Mobile',
+        debugShowCheckedModeBanner: false,
+        themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        home: _showSplash
+            ? SplashScreen(
+                onInitializationComplete: (isLoggedIn) => setState(() {
+                  _showSplash = false;
+                  _isLoggedIn = isLoggedIn;
+                }),
+              )
+            : (_isLoggedIn
+                  ? MainNavigationShell(
                       isDarkMode: _isDarkMode,
                       onToggleTheme: _toggleTheme,
                       onLogout: () async {
@@ -92,11 +88,11 @@ class _DsrRepMobileAppState extends State<DsrRepMobileApp> {
                         if (!mounted) return;
                         setState(() => _isLoggedIn = false);
                       },
-                    ),
-                  )
-                : LoginScreen(
-                    onLoginSuccess: () => setState(() => _isLoggedIn = true),
-                  )),
+                    )
+                  : LoginScreen(
+                      onLoginSuccess: () => setState(() => _isLoggedIn = true),
+                    )),
+      ),
     );
   }
 }
