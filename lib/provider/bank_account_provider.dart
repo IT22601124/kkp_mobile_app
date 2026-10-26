@@ -1,9 +1,10 @@
+import 'session_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:kkp_rep_mobile_app/dio/dio_client.dart';
 import 'package:kkp_rep_mobile_app/models/bank_account_model.dart';
 import 'package:kkp_rep_mobile_app/resources/api_routes.dart';
 
-class BankAccountProvider extends ChangeNotifier {
+class BankAccountProvider extends SessionNotifier {
   bool isLoading = false;
   final DioClient _dioClient = DioClient();
   List<BankAccountModel> listBankAccounts = [];
@@ -41,11 +42,16 @@ class BankAccountProvider extends ChangeNotifier {
           if (target is List) {
             accountsJson = target;
           } else if (target is Map) {
-            if (target.containsKey('bank_accounts') && target['bank_accounts'] is List) {
+            if (target.containsKey('bank_accounts') &&
+                target['bank_accounts'] is List) {
               accountsJson = target['bank_accounts'];
-            } else if (target.containsKey('accounts') && target['accounts'] is List) {
+            } else if (target.containsKey('accounts') &&
+                target['accounts'] is List) {
               accountsJson = target['accounts'];
-            } else if (target.isNotEmpty && (target.containsKey('id') || target.containsKey('bank_name') || target.containsKey('account_number'))) {
+            } else if (target.isNotEmpty &&
+                (target.containsKey('id') ||
+                    target.containsKey('bank_name') ||
+                    target.containsKey('account_number'))) {
               accountsJson = [target];
             }
           }
@@ -53,12 +59,16 @@ class BankAccountProvider extends ChangeNotifier {
 
         if (accountsJson.isNotEmpty) {
           listBankAccounts = accountsJson
-              .map((j) => BankAccountModel.fromJson(Map<String, dynamic>.from(j)))
+              .map(
+                (j) => BankAccountModel.fromJson(Map<String, dynamic>.from(j)),
+              )
               .toList();
 
           // Retain selection or select default
           if (selectedBankAccount != null) {
-            final match = listBankAccounts.where((b) => b.id == selectedBankAccount!.id);
+            final match = listBankAccounts.where(
+              (b) => b.id == selectedBankAccount!.id,
+            );
             if (match.isNotEmpty) {
               selectedBankAccount = match.first;
             } else {
@@ -76,7 +86,9 @@ class BankAccountProvider extends ChangeNotifier {
         }
       }
     } catch (e) {
-      debugPrint('Failed to load bank accounts from API, using default 4 accounts: $e');
+      debugPrint(
+        'Failed to load bank accounts from API, using default 4 accounts: $e',
+      );
       // Keep empty if API failed to prevent invalid IDs
       selectedBankAccount = null;
     } finally {

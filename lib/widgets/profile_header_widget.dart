@@ -1,250 +1,478 @@
+
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:kkp_rep_mobile_app/provider/auth_provider.dart';
 import 'package:provider/provider.dart';
+
+import 'package:kkp_rep_mobile_app/provider/auth_provider.dart';
+import 'package:kkp_rep_mobile_app/services/notification_service.dart';
+import 'package:kkp_rep_mobile_app/services/rep_notification_inbox.dart';
+
 import '../screens/user_profile_screen.dart';
+import '../screens/notifications_screen.dart';
 import '../theme/app_theme.dart';
 
 class ProfileHeaderWidget extends StatefulWidget {
   final bool isDarkMode;
   final VoidCallback onToggleTheme;
-  final VoidCallback? onNotificationsPressed;
-  final int unreadNotificationCount;
+  final bool isKeepTheme;
 
   const ProfileHeaderWidget({
     super.key,
     required this.isDarkMode,
     required this.onToggleTheme,
-    this.onNotificationsPressed,
-    this.unreadNotificationCount = 0,
+    this.isKeepTheme = false,
   });
 
   @override
-  State<ProfileHeaderWidget> createState() => _ProfileHeaderWidgetState();
+  State<ProfileHeaderWidget> createState() =>
+      _ProfileHeaderWidgetState();
 }
 
-class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
+class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget>
+    with WidgetsBindingObserver {
   bool _isLoading = false;
+  bool _inboxOpen = false;
+
+  final RepNotificationInbox _notificationInbox =
+  RepNotificationInbox();
+
+  StreamSubscription<void>? _notificationSubscription;
+  Timer? _notificationTimer;
+
+  final NotificationService _notificationService =
+  NotificationService();
 
   @override
   void initState() {
     super.initState();
+
+    WidgetsBinding.instance.addObserver(this);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadData();
+      if (!mounted) return;
+
+      _loadUserData();
+      _initializeNotifications();
     });
   }
 
-  Future<void> _loadData() async {
+  // ==========================================
+  // USER DATA
+  // ==========================================
+
+  Future<void> _loadUserData() async {
     final authProvider = context.read<AuthProvider>();
-    if (authProvider.user == null) {
-      if (mounted) setState(() => _isLoading = true);
+
+    if (authProvider.user != null) return;
+
+    setState(() => _isLoading = true);
+
+    try {
       await authProvider.checkSavedToken();
-      if (mounted) setState(() => _isLoading = false);
+    } catch (e) {
+      debugPrint('Header user loading error: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
+  // ==========================================
+  // NOTIFICATION INITIALIZATION
+  // ==========================================
+
+  void _initializeNotifications() {
+    _notificationService.inboxRequested
+        .addListener(_handleInboxRequest);
+
+    _notificationSubscription =
+        _notificationService.inboxUpdates.listen((_) {
+          if (!mounted) return;
+          _refreshNotifications();
+        });
+
+    _notificationTimer = Timer.periodic(
+      const Duration(seconds: 30),
+          (_) {
+        if (!mounted) return;
+
+        if (WidgetsBinding.instance.lifecycleState ==
+            AppLifecycleState.resumed &&
+            !_inboxOpen) {
+          _refreshNotifications();
+        }
+      },
+    );
+
+    // Initial notification loading
+    _refreshNotifications();
+
+    // Handle pending notification tap
+    _handleInboxRequest();
+  }
+
+  // ==========================================
+  // REFRESH NOTIFICATIONS
+  // ==========================================
+
+  void _refreshNotifications() {
+    if (!mounted) return;
+
+    _notificationInbox.refresh();
+  }
+
+  // ==========================================
+  // PUSH NOTIFICATION TAP
+  // ==========================================
+
+  void _handleInboxRequest() {
+    if (!mounted) return;
+
+    if (!_notificationService.inboxRequested.value) {
+      return;
+    }
+
+    _notificationService.inboxRequested.value = false;
+
+    _openInbox();
+  }
+
+  // ==========================================
+  // OPEN NOTIFICATION SCREEN
+  // ==========================================
+
+  Future<void> _openInbox() async {
+    if (!mounted) return;
+
+    if (_inboxOpen) {
+      _refreshNotifications();
+      return;
+    }
+
+    _inboxOpen = true;
+
+    try {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => NotificationsScreen(
+            inbox: _notificationInbox,
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Notification navigation error: $e');
+    } finally {
+      _inboxOpen = false;
+
+      if (mounted) {
+        _refreshNotifications();
+      }
+    }
+  }
+
+  // ==========================================
+  // APP LIFECYCLE
+  // ==========================================
+
+  @override
+  void didChangeAppLifecycleState(
+      AppLifecycleState state,
+      ) {
+    super.didChangeAppLifecycleState(state);
+
+    if (state == AppLifecycleState.resumed) {
+      _refreshNotifications();
+      _handleInboxRequest();
+    }
+  }
+
+  // ==========================================
+  // OPEN PROFILE
+  // ==========================================
+
+  void _openProfile() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => UserProfileScreen(
+          isDarkMode: widget.isDarkMode,
+          onToggleTheme: widget.onToggleTheme,
+        ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // DISPOSE
+  // ==========================================
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+
+    _notificationTimer?.cancel();
+    _notificationSubscription?.cancel();
+
+    _notificationService.inboxRequested
+        .removeListener(_handleInboxRequest);
+
+    _notificationInbox.dispose();
+
+    super.dispose();
+  }
+
+  // ==========================================
+  // BUILD UI
+  // ==========================================
+
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark =
+        Theme.of(context).brightness == Brightness.dark;
+
+    final textColor = isDark
+        ? AppColors.darkTextMain
+        : AppColors.lightTextMain;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.fromLTRB(0, 12, 0, 4),
       child: Consumer<AuthProvider>(
         builder: (context, authProvider, _) {
           final user = authProvider.user;
+
           final userName = user?.name ?? 'DSR Rep';
-          final initial = userName.isNotEmpty ? userName[0].toUpperCase() : 'R';
-          final userSubtext = user?.phone ?? '0787450360';
-          final avatarUrl = user?.normalizedAvatarUrl?.trim();
+          final initial = userName.isNotEmpty
+              ? userName[0].toUpperCase()
+              : 'R';
+
+          final userSubtext = user?.phone ?? '';
+          final avatarUrl = user?.avatarUrl?.trim();
 
           return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => UserProfileScreen(
-                        isDarkMode: widget.isDarkMode,
-                        onToggleTheme: widget.onToggleTheme,
-                      ),
+              // ====================================
+              // USER INFORMATION
+              // ====================================
+              Expanded(
+                child: InkWell(
+                  onTap: _openProfile,
+                  borderRadius:
+                  BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.only(
+                      left: 12,
+                      right: 4,
                     ),
-                  );
-                },
-                child: Row(
-                  children: [
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Column(
+                      crossAxisAlignment:
+                      CrossAxisAlignment.start,
                       children: [
                         _isLoading
                             ? const SizedBox(
-                                width: 80,
-                                height: 18,
-                                child: LinearProgressIndicator(),
-                              )
+                          width: 80,
+                          height: 18,
+                          child:
+                          LinearProgressIndicator(),
+                        )
                             : Text(
-                                userName,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: isDark
-                                      ? AppColors.darkTextMain
-                                      : AppColors.lightTextMain,
-                                ),
-                              ),
-                        const SizedBox(height: 2),
+                          userName,
+                          maxLines: 1,
+                          overflow:
+                          TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight:
+                            FontWeight.w600,
+                            color: textColor,
+                          ),
+                        ),
+
+                        const SizedBox(height: 3),
+
                         Row(
                           children: [
                             Icon(
-                              Icons.location_on,
+                              Icons.phone_outlined,
                               size: 14,
-                              color: isDark
-                                  ? AppColors.darkTextMain
-                                  : AppColors.lightTextMain,
+                              color: textColor,
                             ),
                             const SizedBox(width: 4),
-                            _isLoading
-                                ? const SizedBox.shrink()
-                                : Text(
-                                    userSubtext,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: isDark
-                                          ? AppColors.darkTextMain
-                                          : AppColors.lightTextMain,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                            if (!_isLoading)
+                              Expanded(
+                                child: Text(
+                                  userSubtext,
+                                  maxLines: 1,
+                                  overflow:
+                                  TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: textColor,
+                                    fontWeight:
+                                    FontWeight.w600,
                                   ),
+                                ),
+                              ),
                           ],
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-              Row(
-                children: [
-                  Stack(
+
+              // ====================================
+              // NOTIFICATION ICON + UNREAD COUNT
+              // ====================================
+              AnimatedBuilder(
+                animation: _notificationInbox,
+                builder: (context, _) {
+                  final unreadCount =
+                      _notificationInbox.unreadCount;
+
+                  return Stack(
+                    clipBehavior: Clip.none,
                     children: [
                       IconButton(
-                        icon: const Icon(
-                          Icons.notifications_outlined,
-                          size: 28,
-                        ),
+                        onPressed: _openInbox,
                         tooltip: 'Notifications',
-                        onPressed: widget.onNotificationsPressed,
-                        constraints: const BoxConstraints(
-                          minWidth: 40,
-                          minHeight: 40,
+                        icon: Icon(
+                          Icons.notifications_outlined,
+                          size: 27,
+                          color: textColor,
+                        ),
+                        constraints:
+                        const BoxConstraints(
+                          minWidth: 42,
+                          minHeight: 42,
                         ),
                         padding: EdgeInsets.zero,
                       ),
-                      if (widget.unreadNotificationCount > 0)
+
+                      if (unreadCount > 0)
                         Positioned(
-                          right: 8,
-                          top: 8,
+                          right: 0,
+                          top: 0,
                           child: Container(
-                            width: 22,
-                            height: 16,
-                            decoration: const BoxDecoration(
-                              color: AppColors.roseDanger,
-                              shape: BoxShape.circle,
+                            constraints:
+                            const BoxConstraints(
+                              minWidth: 17,
+                              minHeight: 17,
                             ),
-                            child: Center(
-                              child: Text(
-                                widget.unreadNotificationCount > 99
-                                    ? '99+'
-                                    : '${widget.unreadNotificationCount}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            padding:
+                            const EdgeInsets.symmetric(
+                              horizontal: 4,
+                            ),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color:
+                              AppColors.roseDanger,
+                              borderRadius:
+                              BorderRadius.circular(
+                                10,
+                              ),
+                              border: Border.all(
+                                color: isDark
+                                    ? AppColors.darkBg
+                                    : Colors.white,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Text(
+                              unreadCount > 99
+                                  ? '99+'
+                                  : '$unreadCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight:
+                                FontWeight.bold,
                               ),
                             ),
                           ),
                         ),
                     ],
+                  );
+                },
+              ),
+
+              // ====================================
+              // THEME TOGGLE
+              // ====================================
+              if (widget.isKeepTheme) ...[
+                const SizedBox(width: 2),
+                IconButton(
+                  icon: Icon(
+                    widget.isDarkMode
+                        ? Icons.wb_sunny_outlined
+                        : Icons.nightlight_round,
+                    size: 26,
+                    color: textColor,
                   ),
-                  const SizedBox(width: 2),
-                  IconButton(
-                    icon: Icon(
-                      widget.isDarkMode
-                          ? Icons.wb_sunny_outlined
-                          : Icons.nightlight_round,
-                      size: 28,
-                    ),
-                    onPressed: widget.onToggleTheme,
-                    constraints: const BoxConstraints(
-                      minWidth: 40,
-                      minHeight: 40,
-                    ),
-                    padding: EdgeInsets.zero,
+                  tooltip: 'Toggle theme',
+                  onPressed: widget.onToggleTheme,
+                  constraints:
+                  const BoxConstraints(
+                    minWidth: 40,
+                    minHeight: 40,
                   ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => UserProfileScreen(
-                            isDarkMode: widget.isDarkMode,
-                            onToggleTheme: widget.onToggleTheme,
-                          ),
+                  padding: EdgeInsets.zero,
+                ),
+              ],
+
+              const SizedBox(width: 8),
+
+              // ====================================
+              // PROFILE AVATAR
+              // ====================================
+              GestureDetector(
+                onTap: _openProfile,
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: const BoxDecoration(
+                    color: AppColors.primaryOrange,
+                    shape: BoxShape.circle,
+                  ),
+                  child: _isLoading
+                      ? const Center(
+                    child:
+                    CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                      : avatarUrl != null &&
+                      avatarUrl.isNotEmpty
+                      ? Image.network(
+                    avatarUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder:
+                        (_, error, stack) =>
+                        _buildInitial(
+                          initial,
                         ),
-                      );
-                    },
-                    child: Container(
-                      width: 48,
-                      height: 48,
-                      clipBehavior: Clip.antiAlias,
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryOrange,
-                        shape: BoxShape.circle,
-                      ),
-                      child: _isLoading
-                          ? const Center(
-                              child: SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                            )
-                          : avatarUrl != null && avatarUrl.isNotEmpty
-                          ? Image.network(
-                              avatarUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => Center(
-                                child: Text(
-                                  initial,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            )
-                          : Center(
-                              child: Text(
-                                initial,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                    ),
-                  ),
-                ],
+                  )
+                      : _buildInitial(initial),
+                ),
               ),
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildInitial(String initial) {
+    return Center(
+      child: Text(
+        initial,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }

@@ -7,7 +7,7 @@ import '../models/shop_model.dart';
 import '../models/route_model.dart';
 import '../provider/shop_provider.dart';
 import '../theme/app_theme.dart';
-import 'google_map_picker_screen.dart';
+import 'shop_map_picker_screen.dart';
 
 class RegisterShopBottomSheet extends StatefulWidget {
   final ShopModel? shopToEdit;
@@ -107,7 +107,7 @@ class _RegisterShopBottomSheetState extends State<RegisterShopBottomSheet> {
     final selectedLocation = await Navigator.push<LatLng>(
       context,
       MaterialPageRoute(
-        builder: (context) => GoogleMapPickerScreen(
+        builder: (context) => ShopMapPickerScreen(
           initialPosition: _selectedLatLng,
         ),
       ),

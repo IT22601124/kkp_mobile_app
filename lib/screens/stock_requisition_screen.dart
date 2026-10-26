@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../provider/auth_provider.dart';
 import '../provider/item_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/other_screen header.dart';
 import '../widgets/request_stock_screen.dart';
 
 class StockRequisitionScreen extends StatefulWidget {
@@ -45,6 +46,15 @@ class _StockRequisitionScreenState extends State<StockRequisitionScreen> with Si
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(60),
+        child: OtherScreenHeader(
+          title: 'Stock & Requisitions',
+          isDarkMode: isDark,
+          isKeepTheme: false,
+          onToggleTheme: () {  },
+        ),
+      ),
       backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
       body: SafeArea(
         child: NestedScrollView(
@@ -100,7 +110,7 @@ class _StockRequisitionScreenState extends State<StockRequisitionScreen> with Si
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),
-                            child: const Text('+ Request Stock', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                            child: const Text('+ Request', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                           ),
                         ],
                       ),

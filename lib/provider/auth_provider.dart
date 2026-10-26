@@ -10,6 +10,15 @@ class AuthProvider extends ChangeNotifier {
   bool _isLoggedIn = false;
   final DioClient _dioClient = DioClient();
   UserModel? _user;
+  int sessionRevision = 0;
+  String? _sessionToken;
+
+  void _adoptToken(String token) {
+    if (_sessionToken != token) sessionRevision++;
+    _sessionToken = token;
+    _dioClient.setAuthToken(token);
+  }
+
   UserModel? get user => _user;
 
   bool get isLoggedIn => _isLoggedIn;
@@ -28,31 +37,37 @@ class AuthProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
       if (token != null && token.isNotEmpty) {
-        _dioClient.setAuthToken(token);
+        _adoptToken(token);
 
         try {
           final response = await _dioClient.get(ApiRoutes.checkTokenUrl);
           final data = response.data;
-          
+
           if (response.statusCode == 200) {
             if (data is Map) {
               // If backend explicitly returns success: false or valid: false
-              if (data['success'] == false || (data['data'] is Map && data['data']['valid'] == false)) {
+              if (data['success'] == false ||
+                  (data['data'] is Map && data['data']['valid'] == false)) {
                 await logout();
                 return false;
               } else {
                 Map<String, dynamic>? userMap;
-                if (data['data'] is Map && (data['data'] as Map).containsKey('user') && data['data']['user'] is Map) {
+                if (data['data'] is Map &&
+                    (data['data'] as Map).containsKey('user') &&
+                    data['data']['user'] is Map) {
                   userMap = Map<String, dynamic>.from(data['data']['user']);
                 } else if (data['user'] is Map) {
                   userMap = Map<String, dynamic>.from(data['user']);
-                } else if (data['data'] is Map && (data['data'] as Map).containsKey('id')) {
+                } else if (data['data'] is Map &&
+                    (data['data'] as Map).containsKey('id')) {
                   userMap = Map<String, dynamic>.from(data['data']);
                 }
 
                 if (userMap != null) {
                   _user = UserModel.fromJson(userMap);
-                  debugPrint('User data loaded from token: ${_user?.name}, avatar: ${_user?.avatarUrl}');
+                  debugPrint(
+                    'User data loaded from token: ${_user?.name}, avatar: ${_user?.avatarUrl}',
+                  );
                 }
               }
             }
@@ -74,14 +89,14 @@ class AuthProvider extends ChangeNotifier {
           }
         } on DioException catch (e) {
           // If 401 Unauthorized, token is invalid/expired -> logout and go to login
-          if (e.response?.statusCode == 401) {
+          if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
             await logout();
             return false;
           }
           // If network is offline/unreachable, allow offline session cached token
-          _isLoggedIn = true;
-          notifyListeners();
-          return true;
+          if (e.response != null) rethrow;
+          _isLoggedIn = false;
+          return false;
         }
       }
     } catch (e) {
@@ -96,7 +111,6 @@ class AuthProvider extends ChangeNotifier {
       String? fcmToken;
       try {
         fcmToken = await NotificationService().getOrFetchFcmToken();
-        debugPrint('FCM Token for login: $fcmToken');
       } catch (e) {
         debugPrint('FCM Token fetch failed before login: $e');
       }
@@ -125,16 +139,21 @@ class AuthProvider extends ChangeNotifier {
         if (data is Map) {
           if (data.containsKey('token')) {
             token = data['token'].toString();
-          } else if (data.containsKey('data') && data['data'] is Map && (data['data'] as Map).containsKey('token')) {
+          } else if (data.containsKey('data') &&
+              data['data'] is Map &&
+              (data['data'] as Map).containsKey('token')) {
             token = data['data']['token'].toString();
           }
 
           Map<String, dynamic>? userMap;
           if (data['user'] is Map) {
             userMap = Map<String, dynamic>.from(data['user']);
-          } else if (data['data'] is Map && (data['data'] as Map).containsKey('user') && data['data']['user'] is Map) {
+          } else if (data['data'] is Map &&
+              (data['data'] as Map).containsKey('user') &&
+              data['data']['user'] is Map) {
             userMap = Map<String, dynamic>.from(data['data']['user']);
-          } else if (data['data'] is Map && (data['data'] as Map).containsKey('id')) {
+          } else if (data['data'] is Map &&
+              (data['data'] as Map).containsKey('id')) {
             userMap = Map<String, dynamic>.from(data['data']);
           }
 
@@ -144,11 +163,14 @@ class AuthProvider extends ChangeNotifier {
         }
 
         if (token != null && token.isNotEmpty) {
-          _dioClient.setAuthToken(token);
+          _adoptToken(token);
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('auth_token', token);
         }
 
+        if (token == null || token.isEmpty || _user == null) {
+          throw Exception('The server returned an incomplete login response.');
+        }
         _isLoggedIn = true;
         notifyListeners();
 
@@ -173,7 +195,9 @@ class AuthProvider extends ChangeNotifier {
         }
       }
       debugPrint('Login network unreachable: $e');
-      throw Exception('Unable to connect to server. Please check your network.');
+      throw Exception(
+        'Unable to connect to server. Please check your network.',
+      );
     } catch (e) {
       debugPrint('Login error: $e');
       rethrow;
@@ -200,7 +224,9 @@ class AuthProvider extends ChangeNotifier {
       if (data is Map) {
         if (data.containsKey('avatar_url')) {
           avatarUrl = data['avatar_url']?.toString();
-        } else if (data.containsKey('data') && data['data'] is Map && (data['data'] as Map).containsKey('avatar_url')) {
+        } else if (data.containsKey('data') &&
+            data['data'] is Map &&
+            (data['data'] as Map).containsKey('avatar_url')) {
           avatarUrl = data['data']['avatar_url']?.toString();
         } else if (data.containsKey('url')) {
           avatarUrl = data['url']?.toString();
@@ -230,7 +256,9 @@ class AuthProvider extends ChangeNotifier {
       final data = response.data;
       if (response.statusCode == 200 && data is Map) {
         Map<String, dynamic>? userMap;
-        if (data['data'] is Map && (data['data'] as Map).containsKey('user') && data['data']['user'] is Map) {
+        if (data['data'] is Map &&
+            (data['data'] as Map).containsKey('user') &&
+            data['data']['user'] is Map) {
           userMap = Map<String, dynamic>.from(data['data']['user']);
         } else if (data['data'] is Map) {
           userMap = Map<String, dynamic>.from(data['data']);
@@ -240,10 +268,8 @@ class AuthProvider extends ChangeNotifier {
           userMap = Map<String, dynamic>.from(data);
         }
 
-        if (userMap != null) {
-          _user = UserModel.fromJson(userMap);
-          notifyListeners();
-        }
+        _user = UserModel.fromJson(userMap);
+        notifyListeners();
       }
     } catch (e) {
       debugPrint('Error fetching rep me details: $e');
@@ -254,9 +280,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       final response = await _dioClient.post(
         ApiRoutes.updateFcmTokenUrl,
-        data: {
-          "fcm_token": token,
-        },
+        data: {"fcm_token": token},
       );
       debugPrint('FCM token registered on backend: ${response.statusCode}');
     } catch (e) {
@@ -285,6 +309,8 @@ class AuthProvider extends ChangeNotifier {
     } finally {
       _isLoggedIn = false;
       _user = null;
+      _sessionToken = null;
+      sessionRevision++;
       _dioClient.clearAuthToken();
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('auth_token');

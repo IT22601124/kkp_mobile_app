@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
 import '../models/shop_model.dart';
 import '../provider/shop_provider.dart';
@@ -110,7 +111,12 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
                       // Sales list
                       Expanded(
                         child: snapshot.connectionState == ConnectionState.waiting
-                            ? const Center(child: CircularProgressIndicator(color: AppColors.purpleAccent))
+                            ?  Center(child:
+                        LoadingAnimationWidget.hexagonDots(
+                          color: AppColors.primaryOrange,
+                          size: 38,
+                        ),
+                        )
                             : snapshot.hasError
                                 ? Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: AppColors.roseDanger)))
                                 : (snapshot.data == null || snapshot.data!.isEmpty)
@@ -375,7 +381,10 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
                     // Credit Shops List
                     if (shopProvider.isLoading && creditShops.isEmpty)
                        Center(
-                        child: CircularProgressIndicator(color: AppColors.purpleAccent),
+                        child: LoadingAnimationWidget.hexagonDots(
+                          color: AppColors.purpleAccent,
+                          size: 38,
+                        ),
                       )
                     else if (creditShops.isEmpty)
                       Center(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/dsr_models.dart';
 import '../theme/app_theme.dart';
+import '../widgets/other_screen header.dart';
 import 'all_shops_screen.dart';
 import 'payment_collection_screen.dart';
 import 'route_outlets_screen.dart';
@@ -24,6 +25,15 @@ class ShopsHubScreen extends StatelessWidget {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: OtherScreenHeader(
+            title: 'Shops Hub',
+            isDarkMode: isDark,
+            isKeepTheme: false,
+            onToggleTheme: onToggleTheme,
+          ),
+        ),
         backgroundColor: isDark ? AppColors.darkBg : AppColors.lightCard,
         body: SafeArea(
           child: Column(

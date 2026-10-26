@@ -83,12 +83,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: isDark ? AppColors.darkTextMain : AppColors.lightTextMain,
+                color: isDark
+                    ? AppColors.darkTextMain
+                    : AppColors.lightTextMain,
               ),
             ),
             const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(Icons.photo_library, color: AppColors.primaryOrange),
+              leading: const Icon(
+                Icons.photo_library,
+                color: AppColors.primaryOrange,
+              ),
               title: const Text('Choose from Gallery'),
               onTap: () {
                 Navigator.pop(ctx);
@@ -96,7 +101,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.camera_alt, color: AppColors.cyanAccent),
+              leading: const Icon(
+                Icons.camera_alt,
+                color: AppColors.cyanAccent,
+              ),
               title: const Text('Take a Photo'),
               onTap: () {
                 Navigator.pop(ctx);
@@ -113,13 +121,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final user = context.watch<AuthProvider>().user;
-    final name = user?.name.isNotEmpty == true ? user!.name : 'DSR Representative';
+    final name = user?.name.isNotEmpty == true
+        ? user!.name
+        : 'DSR Representative';
     final initial = name.isNotEmpty ? name[0].toUpperCase() : 'U';
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
       appBar: AppBar(
-        title: const Text('User Profile', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text(
+          'User Profile',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
         centerTitle: true,
         backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
         elevation: 0,

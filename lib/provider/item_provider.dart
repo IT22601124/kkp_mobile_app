@@ -1,3 +1,4 @@
+import 'session_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:kkp_rep_mobile_app/dio/dio_client.dart';
 import 'package:kkp_rep_mobile_app/models/branch_stock_model.dart';
@@ -5,7 +6,7 @@ import 'package:kkp_rep_mobile_app/models/item_model.dart';
 import 'package:kkp_rep_mobile_app/models/rep_stock_model.dart';
 import 'package:kkp_rep_mobile_app/resources/api_routes.dart';
 
-class ItemProvider extends ChangeNotifier {
+class ItemProvider extends SessionNotifier {
   bool isLoading = false;
   final DioClient _dioClient = DioClient();
   List<ItemModel> listItems = [];
