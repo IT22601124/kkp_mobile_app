@@ -130,6 +130,16 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
 
             void updateQty(int newQty) {
               if (newQty < 0) newQty = 0;
+              if (newQty > item.stock) {
+                newQty = item.stock;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Cannot exceed available stock (${item.stock} ${item.unit})'),
+                    backgroundColor: AppColors.roseDanger,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
               setModalState(() {
                 currentQty = newQty;
                 qtyController.text = newQty.toString();
@@ -227,8 +237,20 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                           onChanged: (val) {
                             final parsed = int.tryParse(val);
                             if (parsed != null && parsed >= 0) {
+                              int validQty = parsed;
+                              if (validQty > item.stock) {
+                                validQty = item.stock;
+                                qtyController.text = validQty.toString();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Cannot exceed available stock (${item.stock} ${item.unit})'),
+                                    backgroundColor: AppColors.roseDanger,
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
+                              }
                               setModalState(() {
-                                currentQty = parsed;
+                                currentQty = validQty;
                               });
                             }
                           },
@@ -277,12 +299,22 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                     height: 48,
                     child: ElevatedButton(
                       onPressed: () {
+                        if (currentQty > item.stock) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Cannot exceed available stock (${item.stock} ${item.unit})'),
+                              backgroundColor: AppColors.roseDanger,
+                            ),
+                          );
+                          return;
+                        }
                         setState(() {
                           if (existingIdx != -1) {
                             if (currentQty <= 0) {
                               _cartItems.removeAt(existingIdx);
                             } else {
                               _cartItems[existingIdx]['qty'] = currentQty;
+                              _cartItems[existingIdx]['stock'] = item.stock;
                             }
                           } else if (currentQty > 0) {
                             _cartItems.add({
@@ -293,6 +325,7 @@ class _InvoiceCreationScreenState extends State<InvoiceCreationScreen> {
                               'unitPrice': item.unitPrice,
                               'qty': currentQty,
                               'unit': item.unit,
+                              'stock': item.stock,
                             });
                           }
                         });

@@ -208,7 +208,13 @@ class SalesProvider extends ChangeNotifier {
     isLoading = true;
     notifyListeners();
     try {
-      final response = await _dioClient.get(ApiRoutes.dailySettlementUrl);
+      final response = await _dioClient.get(
+        ApiRoutes.dailySettlementUrl,
+        queryParameters: {
+          'live': true,
+          'date': DateTime.now().toIso8601String().split('T').first,
+        },
+      );
       if (response.statusCode == 200) {
         final data = response.data;
         if (data is Map) {
@@ -251,6 +257,41 @@ class SalesProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Submit daily settlement error: $e');
       rethrow;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getDailySettlementHistory() async {
+    isLoading = true;
+    notifyListeners();
+    try {
+      final response = await _dioClient.get(
+        ApiRoutes.dailySettlementHistoryUrl,
+      );
+      if (response.statusCode == 200) {
+        final data = response.data;
+        List<dynamic> listData = [];
+        if (data is Map) {
+          final target = data.containsKey('data') ? data['data'] : data;
+          if (target is List) {
+            listData = target;
+          } else if (target is Map &&
+              target.containsKey('data') &&
+              target['data'] is List) {
+            listData = target['data'];
+          }
+        } else if (data is List) {
+          listData = data;
+        }
+
+        return listData.map((s) => Map<String, dynamic>.from(s)).toList();
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Get daily settlement history error: $e');
+      return [];
     } finally {
       isLoading = false;
       notifyListeners();

@@ -54,7 +54,7 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
           final userName = user?.name ?? 'DSR Rep';
           final initial = userName.isNotEmpty ? userName[0].toUpperCase() : 'R';
           final userSubtext = user?.phone ?? '0787450360';
-          final avatarUrl = user?.avatarUrl?.trim();
+          final avatarUrl = user?.normalizedAvatarUrl?.trim();
 
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

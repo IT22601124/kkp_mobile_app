@@ -151,9 +151,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             offset: const Offset(0, 6),
                           ),
                         ],
-                        image: user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty
+                        image: user?.normalizedAvatarUrl != null && user!.normalizedAvatarUrl!.isNotEmpty
                             ? DecorationImage(
-                                image: NetworkImage(user.avatarUrl!),
+                                image: NetworkImage(user!.normalizedAvatarUrl!),
                                 fit: BoxFit.cover,
                               )
                             : null,
@@ -162,7 +162,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           ? const Center(
                               child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
                             )
-                          : (user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty)
+                          : (user?.normalizedAvatarUrl != null && user!.normalizedAvatarUrl!.isNotEmpty)
                               ? null
                               : Center(
                                   child: Text(

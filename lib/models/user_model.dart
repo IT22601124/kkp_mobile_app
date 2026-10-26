@@ -49,6 +49,19 @@ class UserModel {
     );
   }
 
+  String? get normalizedAvatarUrl {
+    if (avatarUrl == null || avatarUrl!.isEmpty) return null;
+    String url = avatarUrl!.trim();
+    if (url.startsWith('http:https://')) {
+      url = url.replaceFirst('http:https://', 'https://');
+    } else if (url.startsWith('http:http://')) {
+      url = url.replaceFirst('http:http://', 'http://');
+    } else if (url.startsWith('http://https://')) {
+      url = url.replaceFirst('http://https://', 'https://');
+    }
+    return url;
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,

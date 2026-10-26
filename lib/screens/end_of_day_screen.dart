@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../provider/sales_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_snack_bar.dart';
+import 'daily_settlement_history_screen.dart';
 
 class EndOfDayScreen extends StatefulWidget {
   final VoidCallback onEndTripSuccess;
@@ -20,24 +21,39 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchSettlementData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _fetchSettlementData();
+    });
   }
 
   Future<void> _fetchSettlementData() async {
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = true;
-      });
-
-      final data = await context.read<SalesProvider>().getDailySettlement();
-
-      if (mounted) {
-        setState(() {
-          _settlementData = data;
-          _isLoading = false;
-        });
-      }
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _settlementData = null;
+    });
+    final data = await context.read<SalesProvider>().getDailySettlement();
+    const requiredTotals = [
+      'total_sales_value',
+      'total_cash_collected',
+      'total_cheques_collected',
+      'total_online_collected',
+      'total_credit_issued',
+      'ending_shop_credit',
+      'total_credit_collected',
+    ];
+    final valid =
+        data != null &&
+        data['date'] is String &&
+        data['shops_visited_count'] is int &&
+        data['items_matrix'] is List &&
+        requiredTotals.every(
+          (key) => num.tryParse(data[key]?.toString() ?? '')?.isFinite == true,
+        );
+    if (!mounted) return;
+    setState(() {
+      _settlementData = valid ? data : null;
+      _isLoading = false;
     });
   }
 
@@ -75,6 +91,13 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
       _settlementData?['ending_shop_credit'],
     );
     final itemsMatrix = (_settlementData?['items_matrix'] as List?) ?? [];
+    final creditCollected = _parseDouble(
+      _settlementData?['total_credit_collected'],
+    );
+    final isApproved = _settlementData?['status'] == 'APPROVED';
+    final statusLabel = _settlementData == null
+        ? 'Unavailable'
+        : '${_settlementData!['status']}\n${_settlementData!['is_saved'] == true ? 'Saved snapshot' : 'Live values'}';
 
     final double totalCollected =
         cashCollected + chequesCollected + onlineCollected;
@@ -107,29 +130,34 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'DSR DAILY SETTLEMENT SHEET',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.darkTextSub,
-                              letterSpacing: 1.0,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'DSR DAILY SETTLEMENT SHEET',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.darkTextSub,
+                                letterSpacing: 1.0,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Date: $dateStr ($shopsVisited Shops Visited)',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primaryOrange,
+                            const SizedBox(height: 6),
+                            Text(
+                              _settlementData == null
+                                  ? 'Settlement values unavailable'
+                                  : 'Date: $dateStr ($shopsVisited Shops Visited)',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primaryOrange,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
@@ -139,22 +167,25 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                           color:
                               (_settlementData?['is_saved'] == true ||
                                   _settlementData?['status'] == 'SUBMITTED')
-                              ? AppColors.emeraldSuccess.withAlpha((0.2 * 255).toInt())
-                              : AppColors.primaryOrange.withAlpha((0.15 * 255).toInt()),
+                              ? AppColors.emeraldSuccess.withAlpha(
+                                  (0.2 * 255).toInt(),
+                                )
+                              : AppColors.primaryOrange.withAlpha(
+                                  (0.15 * 255).toInt(),
+                                ),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color:
                                 (_settlementData?['is_saved'] == true ||
                                     _settlementData?['status'] == 'SUBMITTED')
                                 ? AppColors.emeraldSuccess
-                                : AppColors.primaryOrange.withAlpha((0.3 * 255).toInt()),
+                                : AppColors.primaryOrange.withAlpha(
+                                    (0.3 * 255).toInt(),
+                                  ),
                           ),
                         ),
                         child: Text(
-                          (_settlementData?['is_saved'] == true ||
-                                  _settlementData?['status'] == 'SUBMITTED')
-                              ? 'SUBMITTED\nSaved in DB'
-                              : 'Pre-Balanced\nDraft',
+                          statusLabel,
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color:
@@ -176,13 +207,13 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: AppColors.cyanAccent.withOpacity(0.1),
+                    color: AppColors.cyanAccent.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: AppColors.darkYellow.withOpacity(0.3),
+                      color: AppColors.darkYellow.withValues(alpha: 0.3),
                     ),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
                       Icon(
                         Icons.lock_outline,
@@ -192,7 +223,9 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                       SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Auto-Calculated Real-Time from Sales Transactions. Pull down to refresh live values.',
+                          isApproved
+                              ? 'Approved settlement: showing the saved snapshot.'
+                              : 'Calculated from sales and collections. Pull down to refresh. Submit again to update a saved sheet.',
                           style: TextStyle(
                             fontSize: 12,
                             color: AppColors.darkYellow,
@@ -214,6 +247,21 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                       ),
                     ),
                   )
+                else if (_settlementData == null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 40),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'Unable to load settlement values. Please retry.',
+                        ),
+                        TextButton(
+                          onPressed: _fetchSettlementData,
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  )
                 else ...[
                   // 1. Product Stock & Sales Matrix
                   const Text(
@@ -225,6 +273,9 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
+                  const Text(
+                    'Product revenue excludes invoice-level discounts and tax.',
+                  ),
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -394,14 +445,17 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              'TOTAL PAYMENTS\nCOLLECTED TODAY:',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.emeraldSuccess,
+                            const Expanded(
+                              child: Text(
+                                'TOTAL PAYMENTS\nCOLLECTED TODAY:',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.emeraldSuccess,
+                                ),
                               ),
                             ),
+                            const SizedBox(width: 8),
                             Text(
                               'LKR ${totalCollected.toStringAsFixed(2)}',
                               style: const TextStyle(
@@ -419,7 +473,7 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
 
                   // 3. Shop Credit Reconciliation
                   const Text(
-                    '3. Shop Credit Reconciliation',
+                    '3. Sales & Outstanding Credit',
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
@@ -448,21 +502,21 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
                         ),
                         const SizedBox(height: 8),
                         _buildReconRow(
-                          'Today Credit Issued (+):',
-                          '+LKR ${creditIssued.toStringAsFixed(2)}',
+                          'Unpaid Today Sales:',
+                          'LKR ${creditIssued.toStringAsFixed(2)}',
                           isDark,
                           AppColors.primaryOrange,
                         ),
                         const SizedBox(height: 8),
                         _buildReconRow(
-                          'Today Payments Collected (-):',
-                          '-LKR ${totalCollected.toStringAsFixed(2)}',
+                          'Credit Recovered Today:',
+                          'LKR ${creditCollected.toStringAsFixed(2)}',
                           isDark,
                           AppColors.emeraldSuccess,
                         ),
                         const Divider(height: 20),
                         _buildReconRow(
-                          'ENDING SHOP CREDIT BALANCE:',
+                          'Outstanding Invoice Credit:',
                           'LKR ${endingCredit.toStringAsFixed(2)}',
                           isDark,
                           AppColors.purpleAccent,
@@ -482,74 +536,106 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-
         ),
         child: SafeArea(
-          child: SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _isLoading
-                  ? null
-                  : () {
-                      showDialog(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          title: const Text('Submit Settlement Sheet'),
-                          content: Text(
-                            'Submit pre-balanced settlement sheet for $dateStr (Total Sales: LKR ${totalSalesValue.toStringAsFixed(2)})?',
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx),
-                              child: const Text('Cancel'),
-                            ),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primaryOrange,
-                              ),
-                              onPressed: () async {
-                                Navigator.pop(ctx);
-                                await _submitDailySettlementSheet(
-                                  totalSalesValue,
-                                  cashCollected,
-                                  chequesCollected,
-                                  onlineCollected,
-                                  creditIssued,
-                                  endingCredit,
-                                  shopsVisited,
-                                  dateStr,
-                                  itemsMatrix,
-                                );
-                              },
-                              child: const Text(
-                                'Confirm & Submit',
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryOrange,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const DailySettlementHistoryScreen(),
+                      ),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primaryOrange,
+                    side: const BorderSide(color: AppColors.primaryOrange),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.history, size: 18),
+                  label: const Text(
+                    'View Previous Settlements & Status',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
                 ),
               ),
-              icon: const Icon(Icons.send, color: Colors.white),
-              label: const Text(
-                'Submit Pre-Balanced Sheet to Agent',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _isLoading || _settlementData == null || isApproved
+                      ? null
+                      : () {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              title: const Text('Submit Settlement Sheet'),
+                              content: Text(
+                                'Submit settlement sheet for $dateStr (Total Sales: LKR ${totalSalesValue.toStringAsFixed(2)})?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx),
+                                  child: const Text('Cancel'),
+                                ),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primaryOrange,
+                                  ),
+                                  onPressed: () async {
+                                    Navigator.pop(ctx);
+                                    await _submitDailySettlementSheet(
+                                      totalSalesValue,
+                                      cashCollected,
+                                      chequesCollected,
+                                      onlineCollected,
+                                      creditIssued,
+                                      endingCredit,
+                                      shopsVisited,
+                                      dateStr,
+                                      itemsMatrix,
+                                    );
+                                  },
+                                  child: const Text(
+                                    'Confirm & Submit',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryOrange,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.send, color: Colors.white),
+                  label: const Text(
+                    'Submit Settlement Sheet to Agent',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -605,13 +691,16 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 13,
-            color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub,
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 13,
+              color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub,
+            ),
           ),
         ),
+        const SizedBox(width: 8),
         Text(
           amount,
           style: const TextStyle(
@@ -634,14 +723,17 @@ class _EndOfDayScreenState extends State<EndOfDayScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub,
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub,
+            ),
           ),
         ),
+        const SizedBox(width: 8),
         Text(
           amount,
           style: TextStyle(
