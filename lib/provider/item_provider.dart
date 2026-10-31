@@ -1,12 +1,12 @@
-import 'session_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:kkp_rep_mobile_app/dio/dio_client.dart';
 import 'package:kkp_rep_mobile_app/models/branch_stock_model.dart';
 import 'package:kkp_rep_mobile_app/models/item_model.dart';
 import 'package:kkp_rep_mobile_app/models/rep_stock_model.dart';
 import 'package:kkp_rep_mobile_app/resources/api_routes.dart';
+import 'package:kkp_rep_mobile_app/services/notification_service.dart';
 
-class ItemProvider extends SessionNotifier {
+class ItemProvider extends ChangeNotifier {
   bool isLoading = false;
   final DioClient _dioClient = DioClient();
   List<ItemModel> listItems = [];
@@ -15,6 +15,17 @@ class ItemProvider extends SessionNotifier {
   List<BranchStockModel> listBranchStocks = [];
   int? _repStocksRepId;
   bool _hasLoadedRepStocks = false;
+
+  ItemProvider() {
+    NotificationService().onStockUpdateReceived = () {
+      debugPrint('Stock push notification received. Refreshing stock and requisitions...');
+      if (_repStocksRepId != null && _repStocksRepId! > 0) {
+        getRepStocks(_repStocksRepId!);
+      }
+      getStockRequests();
+      getBranchStocks();
+    };
+  }
 
   int? get repStocksRepId => _repStocksRepId;
 
@@ -167,8 +178,14 @@ class ItemProvider extends SessionNotifier {
 
   Future<List<dynamic>> getStockRequests() async {
     try {
-      final response = await _dioClient.get('stock-requests');
-      if (response.statusCode == 200) {
+      dynamic response;
+      try {
+        response = await _dioClient.get(ApiRoutes.stockRequestsUrl);
+      } catch (_) {
+        response = await _dioClient.get('stock-requests');
+      }
+
+      if (response != null && response.statusCode == 200) {
         final data = response.data;
         List<dynamic> listData = [];
         if (data is Map && data.containsKey('data') && data['data'] is List) {

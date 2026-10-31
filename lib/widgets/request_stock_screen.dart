@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../dio/dio_client.dart';
 import '../models/branch_stock_model.dart';
 import '../provider/item_provider.dart';
+import '../resources/api_routes.dart';
 import '../theme/app_theme.dart';
 
 class RequestStockScreen extends StatefulWidget {
@@ -276,12 +277,20 @@ class _RequestStockScreenState extends State<RequestStockScreen> {
       }
 
       final dioClient = DioClient();
-      final response = await dioClient.post('stock-requests', data: {
-        'items': itemsPayload,
-        'notes': _selectedUrgency,
-      });
+      dynamic response;
+      try {
+        response = await dioClient.post(ApiRoutes.stockRequestsUrl, data: {
+          'items': itemsPayload,
+          'notes': _selectedUrgency,
+        });
+      } catch (_) {
+        response = await dioClient.post('stock-requests', data: {
+          'items': itemsPayload,
+          'notes': _selectedUrgency,
+        });
+      }
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response != null && (response.statusCode == 200 || response.statusCode == 201)) {
         if (mounted) {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(

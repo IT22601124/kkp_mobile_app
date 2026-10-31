@@ -27,6 +27,7 @@ class NotificationService {
 
   String? get fcmToken => _fcmToken;
   Function(String token)? onTokenRefreshCallback;
+  Function()? onStockUpdateReceived;
 
   static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
     'high_importance_channel',
@@ -162,6 +163,15 @@ class NotificationService {
           'Foreground FCM message received: ${message.notification?.title}',
         );
         if (message.data['type'] == 'announcement') _inboxUpdates.add(null);
+
+        final title = (message.notification?.title ?? message.data['title']?.toString() ?? '').toLowerCase();
+        final body = (message.notification?.body ?? message.data['body']?.toString() ?? '').toLowerCase();
+        final type = (message.data['type']?.toString() ?? '').toLowerCase();
+
+        if (type.contains('stock') || title.contains('stock') || body.contains('stock') || title.contains('issued') || body.contains('issued')) {
+          onStockUpdateReceived?.call();
+        }
+
         await _showForegroundNotification(message);
       });
 

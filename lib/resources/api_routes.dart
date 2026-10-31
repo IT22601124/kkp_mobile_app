@@ -1,7 +1,7 @@
 class ApiRoutes {
   static const String notificationsUrl = 'mobile/notifications';
  // static const String baseUrl = 'https://api.sundarambrothers.com/api/v1/';
-  static const String baseUrl = 'http://10.0.2.2:8000/api/v1/'; // Use http://10.0.2.2:8000 for Android Emulator, or your local IP for physical device
+  static const String baseUrl = 'http://172.27.208.1:8000/api/v1/'; // Use http://10.0.2.2:8000 for Android Emulator, or your local IP for physical device
   static const String loginUrl = 'mobile/rep/login';
   static const String checkTokenUrl = 'mobile/rep/check-token';
   static const String logoutUrl = 'mobile/rep/logout';
@@ -24,5 +24,6 @@ class ApiRoutes {
   static const String dailySettlementUrl = 'mobile/daily-settlement';
   static const String dailySettlementHistoryUrl = 'mobile/daily-settlement/history';
   static const String salesUrl = 'sales';
+  static const String stockRequestsUrl = 'mobile/stock-requests';
   static const String activeBankAccountsUrl = 'mobile/bank-accounts/active';
 }

@@ -1,10 +1,9 @@
-import 'session_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:kkp_rep_mobile_app/dio/dio_client.dart';
 import 'package:kkp_rep_mobile_app/models/bank_account_model.dart';
 import 'package:kkp_rep_mobile_app/resources/api_routes.dart';
 
-class BankAccountProvider extends SessionNotifier {
+class BankAccountProvider extends ChangeNotifier {
   bool isLoading = false;
   final DioClient _dioClient = DioClient();
   List<BankAccountModel> listBankAccounts = [];
