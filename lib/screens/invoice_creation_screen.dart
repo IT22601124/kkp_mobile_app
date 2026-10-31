@@ -2312,22 +2312,28 @@ Thank you for your business!
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: isLarge ? 16 : 14,
-            fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
-            color: Colors.black54,
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: isLarge ? 16 : 14,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+              color: Colors.black54,
+            ),
           ),
         ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: isLarge ? 18 : 14,
-            fontWeight: (isBold || isHighlight)
-                ? FontWeight.w900
-                : FontWeight.bold,
-            color: isHighlight ? AppColors.roseDanger : Colors.black87,
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              fontSize: isLarge ? 18 : 14,
+              fontWeight: (isBold || isHighlight)
+                  ? FontWeight.w900
+                  : FontWeight.bold,
+              color: isHighlight ? AppColors.roseDanger : Colors.black87,
+            ),
           ),
         ),
       ],

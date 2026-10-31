@@ -271,11 +271,39 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      Navigator.pop(context);
-                      widget.onLogout!();
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          title: const Row(
+                            children: [
+                              Icon(Icons.logout, color: AppColors.roseDanger),
+                              SizedBox(width: 8),
+                              Text('Confirm Logout', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          content: const Text('Are you sure you want to log out of your account?'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.of(context).popUntil((route) => route.isFirst);
+                                widget.onLogout?.call();
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.roseDanger,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: const Text('Log Out'),
+                            ),
+                          ],
+                        ),
+                      );
                     },
                     icon: const Icon(Icons.logout),
-                    label: const Text('Log Out', style: TextStyle(fontWeight: FontWeight.bold)),
+                    label: const Text('LOG OUT FROM APP', style: TextStyle(fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.roseDanger,
                       foregroundColor: Colors.white,
@@ -285,44 +313,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   ),
                 ),
               ],
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text('Log Out'),
-                        content: const Text('Are you sure you want to log out of your account?'),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(ctx);
-                              widget.onLogout?.call();
-                            },
-                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.roseDanger),
-                            child: const Text('Log Out', style: TextStyle(color: Colors.white)),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: isDark ? AppColors.primaryOrange : AppColors.lightCard,
-                    foregroundColor: AppColors.roseDanger,
-                    side: const BorderSide(color: AppColors.roseDanger),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  icon: Icon(Icons.logout, color: isDark ? Colors.white : AppColors.roseDanger),
-                  label: Text('LOG OUT FROM APP',
-                      style: TextStyle(fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : AppColors.roseDanger
-                      )),
-                ),
-              ),
             ],
           ),
         ),

@@ -261,7 +261,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
                       ),
                       ElevatedButton(
                         onPressed: () {
-                          Navigator.pop(ctx);
+                          Navigator.of(context).popUntil((route) => route.isFirst);
                           widget.onLogout();
                         },
                         style: ElevatedButton.styleFrom(

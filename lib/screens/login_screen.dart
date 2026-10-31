@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../provider/auth_provider.dart';
+import '../resources/image_resource.dart';
 import '../theme/app_theme.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -101,17 +102,17 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding:  EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 40),
+               SizedBox(height: 40),
               // Logo Header
               Center(
                 child: Container(
                   width: 100,
                   height: 100,
-                  padding: const EdgeInsets.all(16),
+                  padding:  EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: isDark ? AppColors.darkCard : AppColors.lightCard,
                     shape: BoxShape.circle,
@@ -120,12 +121,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       BoxShadow(
                         color: AppColors.primaryOrange.withOpacity(0.2),
                         blurRadius: 16,
-                        offset: const Offset(0, 8),
+                        offset:  Offset(0, 8),
                       ),
                     ],
                   ),
                   child: Image.asset(
-                    'assets/images/gemini-svg (1).png',
+                    ImageResource.logo,
                     fit: BoxFit.contain,
                   ),
                 ),
