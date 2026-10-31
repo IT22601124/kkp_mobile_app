@@ -28,6 +28,7 @@ class NotificationService {
   String? get fcmToken => _fcmToken;
   Function(String token)? onTokenRefreshCallback;
   Function()? onStockUpdateReceived;
+  Function()? onShopUpdateReceived;
 
   static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
     'high_importance_channel',
@@ -172,12 +173,23 @@ class NotificationService {
           onStockUpdateReceived?.call();
         }
 
+        if (type.contains('shop') || type.contains('route') || title.contains('shop') || body.contains('shop') || title.contains('route') || body.contains('route') || title.contains('outlet')) {
+          onShopUpdateReceived?.call();
+        }
+
         await _showForegroundNotification(message);
       });
 
       // Background notification tap listener (app was running in background)
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
         _handleNotificationTap(message.data);
+        final title = (message.notification?.title ?? message.data['title']?.toString() ?? '').toLowerCase();
+        final body = (message.notification?.body ?? message.data['body']?.toString() ?? '').toLowerCase();
+        final type = (message.data['type']?.toString() ?? '').toLowerCase();
+
+        if (type.contains('shop') || type.contains('route') || title.contains('shop') || body.contains('shop') || title.contains('route') || body.contains('route') || title.contains('outlet')) {
+          onShopUpdateReceived?.call();
+        }
         debugPrint(
           'Notification opened from background state: ${message.data}',
         );

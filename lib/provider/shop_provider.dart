@@ -4,6 +4,7 @@ import 'package:kkp_rep_mobile_app/dio/dio_client.dart';
 import 'package:kkp_rep_mobile_app/models/route_model.dart';
 import 'package:kkp_rep_mobile_app/models/shop_model.dart';
 import 'package:kkp_rep_mobile_app/resources/api_routes.dart';
+import 'package:kkp_rep_mobile_app/services/notification_service.dart';
 
 class ShopProvider extends ChangeNotifier {
   bool isLoading = false;
@@ -16,6 +17,15 @@ class ShopProvider extends ChangeNotifier {
   bool _hasLoadedRouteShops = false;
   bool _hasLoadedTodayVisitedShops = false;
   String? _visitedShopsDate;
+
+  ShopProvider() {
+    NotificationService().onShopUpdateReceived = () {
+      debugPrint('Shop push notification received. Refreshing shops and routes...');
+      getMyShops();
+      getRoutes();
+      getTodayVisitedShops();
+    };
+  }
 
   bool get hasLoadedRouteShops => _hasLoadedRouteShops;
   bool get hasLoadedTodayVisitedShops =>
